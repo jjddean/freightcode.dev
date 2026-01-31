@@ -55,7 +55,7 @@ export const getRouteRiskAssessment: any = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Delegate to new georisk module
-    const result: any = await ctx.runAction(api.georisk.assessRouteRisk, {
+    const result: any = await ctx.runAction((api as any).georisk.assessRouteRisk, {
       origin: args.origin,
       destination: args.destination,
       originCountry: args.originCountry || 'GB', // Default

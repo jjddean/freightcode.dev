@@ -75,11 +75,11 @@ const DashboardPage = () => {
 
 
   const shipmentColumns = [
-    { key: 'id' as string, header: 'Shipment ID', sortable: true },
-    { key: 'origin' as string, header: 'Origin', sortable: true },
-    { key: 'destination' as string, header: 'Destination', sortable: true },
+    { key: 'id' as any, header: 'Shipment ID', sortable: true },
+    { key: 'origin' as any, header: 'Origin', sortable: true },
+    { key: 'destination' as any, header: 'Destination', sortable: true },
     {
-      key: 'status' as string,
+      key: 'status' as any,
       header: 'Status',
       sortable: true,
       render: (value: string) => (
@@ -92,8 +92,8 @@ const DashboardPage = () => {
         </span>
       )
     },
-    { key: 'eta' as string, header: 'ETA', sortable: true },
-    { key: 'value' as string, header: 'Value', sortable: true },
+    { key: 'eta' as any, header: 'ETA', sortable: true },
+    { key: 'value' as any, header: 'Value', sortable: true },
   ];
 
   return (
