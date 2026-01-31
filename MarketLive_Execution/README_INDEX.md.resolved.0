@@ -1,0 +1,23 @@
+# 🚢 MarketLive Execution Center
+
+**Status:** Execution Active
+**Focus:** UI Overhaul & GeoRisk Launch
+
+This directory contains the live assets for the zero-budget execution plan.
+
+## 📋 Strategy & Tracking
+*   [**Master Tracker**](./master_tracker.md) - Status of all deliverables.
+*   [**Content Calendar**](./content/content_calendar.md) - 30-Day Plan.
+*   [**Topic Clusters**](./content/topic_clusters.md) - SEO Focus areas.
+
+## 🎨 UI & Design (Mandatory)
+*   [**UI Checklist**](./ui/ui_checklist.md) - **Read Before Coding.** (Emojis Only, text-sm).
+*   [**Sidebar Spec**](./ui/sidebar_spec.md) - Navigation structure.
+*   [**Landing Page Wireframe**](./ui/landing_page_wireframe.md) - Next.js structure.
+
+## 📢 Content Assets
+*   [**Blog: GeoRisk Intro**](./content/blogs/georisk_intro.md) - First SEO Post.
+*   [**LinkedIn Pack (Week 1)**](./content/social/linkedin_week1.md) - 5 Posts.
+
+## 🤝 PR & Outreach
+*   [**Press Release**](./outreach/press_release_beta.md) - "GeoRisk Navigator Launch".

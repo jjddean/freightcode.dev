@@ -1,0 +1,292 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 210 100% 20%;
+    /* #003366 - Freightcode Primary Blue */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 177 100% 35%;
+    /* #00b5ad - Teal/Electric Blue */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 177 100% 35%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    margin: 0;
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    scrollbar-gutter: stable;
+  }
+
+  /* Freightcode specific typography */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold text-primary-800;
+  }
+
+  /* Small text for data density */
+  .text-data {
+    @apply text-sm leading-tight;
+  }
+
+  .text-label {
+    @apply text-xs font-medium text-muted-foreground uppercase tracking-wide;
+  }
+}
+
+/* Ensure Sonner toasts are visible above everything */
+[data-sonner-toaster] {
+  z-index: 10000 !important;
+}
+
+@layer components {
+
+  /* Layout */
+  #root {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    text-align: left;
+  }
+
+  /* Page container with smooth animations */
+  .page-container {
+    @apply py-8;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .page-content {
+    @apply mt-6;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Public page styles */
+  .public-page {
+    @apply flex flex-col items-center justify-center min-h-[70vh];
+  }
+
+  .auth-buttons {
+    @apply flex gap-4 mt-8;
+  }
+
+  .auth-buttons a {
+    @apply inline-block px-6 py-3 text-sm font-medium text-white bg-primary hover:bg-primary-700 rounded-lg transition-colors duration-200;
+  }
+
+  /* Protected page styles */
+  .protected-page {
+    @apply flex flex-col items-center justify-center min-h-[70vh];
+  }
+
+  /* Clerk component customization */
+  .cl-rootBox {
+    @apply w-full max-w-md mx-auto;
+  }
+
+  /* Setup page styles */
+  .setup-needed {
+    @apply max-w-4xl mx-auto p-8 font-sans;
+  }
+
+  .setup-needed h1 {
+    @apply text-primary text-3xl font-bold mb-4;
+  }
+
+  .setup-needed ol {
+    @apply text-left leading-relaxed my-8 space-y-2;
+  }
+
+  .setup-needed code {
+    @apply bg-gray-100 px-2 py-1 rounded text-sm text-gray-800;
+  }
+
+  .demo-box {
+    @apply mt-12 border border-gray-200 rounded-lg p-6 bg-gray-50;
+  }
+
+  .demo-ui {
+    @apply flex gap-8 mt-6 justify-center flex-wrap;
+  }
+
+  .demo-public,
+  .demo-protected {
+    @apply flex-1 min-w-[250px] border border-gray-200 rounded-lg p-6 bg-white shadow-sm;
+  }
+
+  .demo-buttons {
+    @apply flex gap-4 mt-6 justify-center;
+  }
+
+  .demo-buttons button {
+    @apply bg-primary text-white border-0 px-4 py-2 rounded cursor-pointer font-medium hover:bg-primary-700 transition-colors;
+  }
+
+  .demo-user {
+    @apply mt-6 bg-gray-100 p-3 rounded-full w-10 h-10 flex items-center justify-center text-xs mx-auto;
+  }
+
+  /* Navbar styles with Freightcode branding */
+  .navbar {
+    @apply fixed top-0 left-0 w-full bg-white shadow-lg z-[2000] border-b border-gray-100;
+  }
+
+  .navbar-container {
+    @apply flex justify-between items-center px-4 sm:px-6 lg:px-8 h-16 max-w-7xl mx-auto;
+  }
+
+  .navbar-logo {
+    @apply font-bold text-xl text-primary no-underline;
+  }
+
+  .nav-menu {
+    @apply flex list-none m-0 p-0;
+  }
+
+  .nav-item {
+    @apply relative mx-2;
+  }
+
+  .nav-link {
+    @apply flex items-center px-3 py-2 text-gray-700 no-underline font-medium cursor-pointer text-sm hover:text-primary transition-colors duration-200;
+  }
+
+  .nav-link.active {
+    @apply text-primary;
+  }
+
+  .dropdown-arrow {
+    @apply text-xs ml-1;
+  }
+
+  .submenu {
+    @apply absolute top-full left-0 bg-white shadow-lg rounded-md min-w-[180px] py-2 list-none z-[1001] border border-gray-100;
+  }
+
+  .submenu-item {
+    @apply p-0;
+  }
+
+  .submenu-link {
+    @apply block px-4 py-2 text-gray-700 no-underline font-normal text-left text-sm hover:bg-gray-50 hover:text-primary transition-colors duration-200;
+  }
+
+  .auth-section {
+    @apply flex items-center;
+  }
+
+  .auth-buttons-nav {
+    @apply flex gap-2;
+  }
+
+  .auth-button {
+    @apply px-3 py-2 text-sm font-medium text-white bg-primary no-underline rounded hover:bg-primary-700 transition-colors duration-200;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

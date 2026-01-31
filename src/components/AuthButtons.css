@@ -1,0 +1,42 @@
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  height: 40px;
+}
+
+.sign-in-button,
+.sign-up-button {
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid;
+}
+
+.sign-in-button {
+  background-color: transparent;
+  border: 1px solid #3a86ff;
+  color: #3a86ff;
+}
+
+.sign-in-button:hover {
+  background-color: rgba(58, 134, 255, 0.1);
+}
+
+.sign-up-button {
+  background-color: #3a86ff;
+  border: 1px solid #3a86ff;
+  color: white;
+}
+
+.sign-up-button:hover {
+  background-color: #2a75ee;
+  border-color: #2a75ee;
+}

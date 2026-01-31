@@ -1,0 +1,41 @@
+# MarketLive UI Checklist (Mandatory)
+
+**Objective:** Maintain a high-density, operator-grade UI. NO FLUFF.
+
+## 1. Typography & Density
+- [ ] **Base Size:** All standard text MUST use `text-sm`.
+- [ ] **Meta Data:** All labels, timestamps, and secondary info MUST use `text-xs`.
+- [ ] **Headings:** Avoid oversized hero fonts. Max `text-2xl` for page titles.
+- [ ] **Whitespace:** Tight spacing. Use `gap-2` or `gap-4` max for grids.
+
+## 2. Iconography (STRICT)
+- [ ] **Library:** ❌ NO SVG Libraries (Lucide/Heroicons etc).
+- [ ] **Implementation:** ✅ USE EMOJIS ONLY.
+    - Dashboard: 📊
+    - Shipments: 📦
+    - Quotes: 💬 or 📝
+    - Documents: 🧾
+    - Compliance: ⚠️
+    - Settings: ⚙️
+    - Risk/Geo: 📍
+
+## 3. Visual Components
+- [ ] **Media Cards:** Use for primary actions (Quote, Book, Risk).
+    - Background: Subtle image or gradient.
+    - Overlay: `bg-slate-900/60` (or similar).
+    - Text: White text overlay.
+- [ ] **Colors:**
+    - Primary: Deep Navy (`bg-slate-900`).
+    - Accent: Teal/Blue (`text-blue-400` or `text-teal-400`) for CTAs only.
+    - No rainbow colors. Use red/yellow only for critical alerts.
+
+## 4. Specific Features
+- [ ] **GeoRisk Navigator™:**
+    - Must use 📍 or ⚠️ icon.
+    - Must show Score (0-100) prominently.
+    - Label as "Business / Enterprise".
+
+## 5. Navigation (Sidebar)
+- [ ] Fixed/Persistent Sidebar.
+- [ ] Emoji Icons + Text Label.
+- [ ] `text-sm` font size.

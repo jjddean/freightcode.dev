@@ -1,0 +1,40 @@
+# Landing Page Wireframe (Next.js)
+
+**Theme:** Operator-First, High Density, Dark/Navy Aesthetic.
+**Goal:** Conversion to Trial.
+
+## 1. Hero Section (The Command Center)
+*   **Background:** Dark Slate (`bg-slate-950`).
+*   **Headline:** "Don't just ship. Navigate the Risk. 🚢"
+*   **Sub-head:** "The Self-Serve OS for Modern Forwarders. Quotes, Bookings, and Geopolitical Intelligence in one dashboard."
+*   **CTA:**
+    *   [Start Free Trial] (Accented Teal)
+    *   [View Risk Map] (Secondary Outline)
+*   **Visual:** Large screenshot of the "Dashboard" view showing:
+    *   Active shipments list (text-xs table)
+    *   GeoRisk Alert card (📍 Risk: High 88/100)
+
+## 2. Feature Grid (Media Cards)
+*Layout: 3-Column Grid. Each item is a card with a subtle dark image bg + text overlay.*
+
+*   **Card 1: 💬 Instant AI Quoting**
+    *   "Generate accurate multi-modal quotes in seconds. Factor in risk premiums automatically."
+*   **Card 2: 📍 GeoRisk Navigator™ (Featured)**
+    *   *Visual:* Map background with Red/Green zones.
+    *   *Text:* "Predict delays before you book. Real-time volatility scores for every route."
+*   **Card 3: ⚠️ Compliance Hub**
+    *   "Automated KYC & AML checks. Onboard shippers in minutes, not days."
+
+## 3. The "No Fluff" Value Prop (Bullet List)
+*   ✅ No "Call for Pricing" - transparent SaaS fees.
+*   ✅ No "Implementation Fees" - start in 5 minutes.
+*   ✅ No Icon Packs - Built for speed and utility.
+
+## 4. Pricing / Tiers
+*   **Starter (£0/mo):** 5 Shipments, Basic Quotes.
+*   **Pro (£49/mo):** Unlimited Shipments, Docs, API.
+*   **Business (£199/mo):** **GeoRisk Navigator™**, White Label, Priority Support.
+
+## 5. Footer
+*   Links: Login | API Docs | Trust | Status
+*   Socials: 💼 (LinkedIn) | ✖️ (X)
