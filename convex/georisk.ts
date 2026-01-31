@@ -200,7 +200,7 @@ export const getWeatherRisk = internalAction({
 });
 
 // Main GeoRisk assessment action
-export const assessRouteRisk = action({
+export const assessRouteRisk: any = action({
     args: {
         origin: v.string(),
         destination: v.string(),
@@ -214,7 +214,7 @@ export const assessRouteRisk = action({
             type: v.optional(v.string())
         })))
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args): Promise<any> => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Unauthorized");
 
@@ -276,7 +276,7 @@ export const assessRouteRisk = action({
         let weatherDetails = null;
 
         if (args.destCoords) {
-            const weather = await ctx.runAction(internal.georisk.getWeatherRisk, {
+            const weather: any = await ctx.runAction(internal.georisk.getWeatherRisk, {
                 lat: args.destCoords.lat,
                 lon: args.destCoords.lon
             });
