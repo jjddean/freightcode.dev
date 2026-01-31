@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MediaCardHeader from '@/components/ui/media-card-header';
-import DataTable, { type Column } from '@/components/ui/data-table';
+import DataTable from '@/components/ui/data-table';
+import type { Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/layout/Footer';
 import { ShipmentMap } from '@/components/ui/ShipmentMap';
