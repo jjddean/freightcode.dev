@@ -219,7 +219,7 @@ export const assessRouteRisk: any = action({
         if (!identity) throw new Error("Unauthorized");
 
         // Check subscription tier
-        const user = await ctx.runQuery(api.users.getUserByExternalId, {
+        const user = await ctx.runQuery(internal.users.getUserByExternalId, {
             externalId: identity.subject
         });
 

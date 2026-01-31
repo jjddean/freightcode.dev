@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-interface Column<T> {
+export interface Column<T> {
   key: keyof T;
   header: string;
   sortable?: boolean;
@@ -42,10 +42,10 @@ function DataTable<T extends Record<string, any>>({
   // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortColumn) return 0;
-    
+
     const aValue = a[sortColumn];
     const bValue = b[sortColumn];
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
