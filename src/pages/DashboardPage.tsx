@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MediaCardHeader from '@/components/ui/media-card-header';
-import DataTable from '@/components/ui/data-table';
+import DataTable, { type Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/layout/Footer';
 import { ShipmentMap } from '@/components/ui/ShipmentMap';
@@ -67,6 +67,15 @@ const DashboardPage = () => {
     value: s.shipmentDetails?.value || 'N/A'
   })) : [];
 
+  interface Shipment {
+    id: any;
+    origin: any;
+    destination: any;
+    status: any;
+    eta: any;
+    value: any;
+  }
+
   // Decide what to show: Hardcoded (for demo feel) or Empty State?
   // Current logic: If live data is empty, show hardcoded. This confuses users when switching orgs.
   // NEW LOGIC: If we are in an ORG, and data is empty, show "No Shipments in [Org Name]".
@@ -74,7 +83,8 @@ const DashboardPage = () => {
   const displayShipments = recentShipments;
 
 
-  const shipmentColumns = [
+
+  const shipmentColumns: Column<Shipment>[] = [
     { key: 'id' as any, header: 'Shipment ID', sortable: true },
     { key: 'origin' as any, header: 'Origin', sortable: true },
     { key: 'destination' as any, header: 'Destination', sortable: true },
