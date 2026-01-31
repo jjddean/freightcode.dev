@@ -25,8 +25,8 @@ const DashboardPage = () => {
 
   // Dynamic metrics calculation
   const liveMetrics = {
-    activeShipments: liveShipments?.filter(s => s.status !== 'Delivered').length ?? 12,
-    pendingDocuments: liveDocuments?.filter(d => d.status === 'pending' || d.status === 'draft').length ?? 5,
+    activeShipments: liveShipments?.filter((s: any) => s.status !== 'Delivered').length ?? 12,
+    pendingDocuments: liveDocuments?.filter((d: any) => d.status === 'pending' || d.status === 'draft').length ?? 5,
     outstandingInvoices: 3, // Keep hardcoded until invoices API is ready
     monthlyRevenue: 45000 // Keep hardcoded until financial API is ready
   };
@@ -75,11 +75,11 @@ const DashboardPage = () => {
 
 
   const shipmentColumns = [
-    { key: 'id' as keyof typeof recentShipments[0], header: 'Shipment ID', sortable: true },
-    { key: 'origin' as keyof typeof recentShipments[0], header: 'Origin', sortable: true },
-    { key: 'destination' as keyof typeof recentShipments[0], header: 'Destination', sortable: true },
+    { key: 'id' as string, header: 'Shipment ID', sortable: true },
+    { key: 'origin' as string, header: 'Origin', sortable: true },
+    { key: 'destination' as string, header: 'Destination', sortable: true },
     {
-      key: 'status' as keyof typeof recentShipments[0],
+      key: 'status' as string,
       header: 'Status',
       sortable: true,
       render: (value: string) => (
@@ -92,8 +92,8 @@ const DashboardPage = () => {
         </span>
       )
     },
-    { key: 'eta' as keyof typeof recentShipments[0], header: 'ETA', sortable: true },
-    { key: 'value' as keyof typeof recentShipments[0], header: 'Value', sortable: true },
+    { key: 'eta' as string, header: 'ETA', sortable: true },
+    { key: 'value' as string, header: 'Value', sortable: true },
   ];
 
   return (

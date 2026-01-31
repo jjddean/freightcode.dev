@@ -417,7 +417,7 @@ const DocumentsPage = () => {
                                 toast.error("No documents to export");
                                 return;
                             }
-                            const exportData = tableData.map(d => ({
+                            const exportData = tableData.map((d: any) => ({
                                 DocumentNumber: d.documentNumber,
                                 Type: d.type,
                                 Date: d.issueDate,

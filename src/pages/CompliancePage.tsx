@@ -19,8 +19,8 @@ const CompliancePage = () => {
   const liveDocuments = useQuery(api.documents.listMyDocuments, {}) || [];
   const kycStatus = useQuery(api.compliance.getKycStatus);
 
-  const pendingDocs = liveDocuments.filter(d => d.status === 'draft' || d.status === 'pending');
-  const signedDocs = liveDocuments.filter(d => d.docusign?.status === 'completed' || d.status === 'approved');
+  const pendingDocs = liveDocuments.filter((d: any) => d.status === 'draft' || d.status === 'pending');
+  const signedDocs = liveDocuments.filter((d: any) => d.docusign?.status === 'completed' || d.status === 'approved');
 
   const [isKycOpen, setIsKycOpen] = React.useState(false);
 

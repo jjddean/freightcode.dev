@@ -79,7 +79,7 @@ const AccountPage = () => {
           <div className="profile-section">
             <div className="profile-header">
               <div className="profile-avatar">
-                {userData.name.split(' ').map(n => n[0]).join('')}
+                {userData.name.split(' ').map((n: string) => n[0]).join('')}
               </div>
               <div className="profile-info">
                 <h2>{userData.name}</h2>

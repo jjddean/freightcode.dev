@@ -139,8 +139,18 @@ export function MapboxShipmentMap({ className = '' }: MapboxShipmentMapProps) {
                 });
             }
 
+            interface ShipmentLocation {
+                id: string;
+                lng: number;
+                lat: number;
+                label: string;
+                status: string;
+                origin: string;
+                destination: string;
+            }
+
             // Add markers
-            displayData.forEach((shipment) => {
+            displayData.forEach((shipment: ShipmentLocation) => {
                 const el = document.createElement('div');
                 el.className = 'mapbox-marker';
                 el.style.width = '32px';
