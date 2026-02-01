@@ -58,7 +58,7 @@ http.route({
         if (result && result.userId) {
           try {
             if (result.orgId) {
-              await clerk.organizations.updateOrganization(result.orgId, {
+              await clerk.organizations.updateOrganizationMetadata(result.orgId, {
                 publicMetadata: {
                   subscriptionTier: tier,
                   subscriptionStatus: status,
@@ -66,7 +66,7 @@ http.route({
                 },
               });
             } else {
-              await clerk.users.updateUser(result.userId, {
+              await clerk.users.updateUserMetadata(result.userId, {
                 publicMetadata: {
                   subscriptionTier: tier,
                   subscriptionStatus: status,

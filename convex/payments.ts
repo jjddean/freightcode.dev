@@ -18,7 +18,7 @@ export const completeSubscription = action({
         // 2. Update Clerk Metadata
         if (user?.orgId) {
             try {
-                await clerk.organizations.updateOrganization(user.orgId, {
+                await clerk.organizations.updateOrganizationMetadata(user.orgId, {
                     publicMetadata: {
                         subscriptionTier: 'pro',
                         subscriptionStatus: 'active',
@@ -31,7 +31,7 @@ export const completeSubscription = action({
         } else {
             // No Org ID found - Update User Personal Metadata
             try {
-                await clerk.users.updateUser(identity.subject, {
+                await clerk.users.updateUserMetadata(identity.subject, {
                     publicMetadata: {
                         subscriptionTier: 'pro',
                         subscriptionStatus: 'active',

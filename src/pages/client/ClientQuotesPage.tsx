@@ -22,6 +22,9 @@ import {
 } from '@/components/ui/drawer';
 import { toast } from 'sonner';
 
+// Internal helper for the seed button - Moved to top to avoid hoisting issues
+// Internal helper for the seed button - Moved to top to avoid hoisting issues
+
 type Quote = any;
 
 function formatCurrency(amount: number, currency: string = 'USD') {
@@ -71,15 +74,36 @@ const StatusBadge = ({ status }: { status: string }) => {
     );
 };
 
-// Carrier Selection and Booking Component
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
 const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedCarrier: any }) => {
     const createBooking = useMutation(api.bookings.createBooking);
     const upsertShipment = useMutation(api.shipments.upsertShipment);
     const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
     const navigate = useNavigate();
 
-    const handleBook = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    // DFF: Checkout Integrations
+    const [addCustoms, setAddCustoms] = useState(false);
+    const [addInsurance, setAddInsurance] = useState(false);
+
+    const basePrice = selectedCarrier.price?.amount || 0;
+    const customsFee = 150;
+    const insuranceFee = Math.round(basePrice * 0.015) + 50; // 1.5% + $50 base
+
+    const totalPrice = basePrice + (addCustoms ? customsFee : 0) + (addInsurance ? insuranceFee : 0);
+
+    const handleBook = async () => {
         setLoading(true);
         try {
             const contact = quote.contactInfo || {
@@ -88,6 +112,10 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                 phone: 'N/A',
                 company: 'N/A'
             };
+
+            const notes = [];
+            if (addCustoms) notes.push("Service: Customs Brokerage");
+            if (addInsurance) notes.push("Service: Cargo Insurance");
 
             const bookingRes = await createBooking({
                 quoteId: quote.quoteId,
@@ -112,7 +140,17 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                     contactPerson: contact.name || 'Guest',
                     contactPhone: contact.phone || 'N/A',
                 },
-                specialInstructions: "Standard handling"
+                specialInstructions: notes.join(", ") || "Standard handling",
+                price: {
+                    amount: totalPrice,
+                    currency: selectedCarrier.price?.currency || "USD",
+                    breakdown: {
+                        baseRate: basePrice,
+                        documentation: addCustoms ? customsFee : 0,
+                        securityFee: addInsurance ? insuranceFee : 0,
+                        fuelSurcharge: 0
+                    }
+                }
             });
 
             // Optimistic ID if backend doesn't return one immediately (for upsertShipment)
@@ -139,6 +177,8 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                         destination: quote.destination || '',
                         value: quote.value || '',
                     },
+                    riskLevel: addInsurance ? 'low' : 'medium', // Insurance lowers risk
+                    customs: addCustoms ? { filingStatus: 'pending', brokerName: 'Freightcode Customs' } : undefined,
                     events: [
                         {
                             timestamp: new Date().toISOString(),
@@ -157,13 +197,66 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
             toast.error("Failed to create booking");
         } finally {
             setLoading(false);
+            setOpen(false);
         }
     };
 
     return (
-        <Button onClick={handleBook} disabled={loading} size="sm" className="h-8 px-3 text-xs">
-            {loading ? 'Booking...' : 'Book'}
-        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" className="h-8 px-3 text-xs">Book</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Confirm Booking</DialogTitle>
+                    <DialogDescription>
+                        Review details and add operational services.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500">Base Freight ({selectedCarrier.carrierName})</span>
+                        <span className="font-medium">{formatCurrency(basePrice, selectedCarrier.price?.currency)}</span>
+                    </div>
+
+                    <div className="space-y-4 border-t pt-4">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="customs" checked={addCustoms} onCheckedChange={(c) => setAddCustoms(!!c)} />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="customs" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Add Customs Brokerage (+${customsFee})
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Includes ISF filing and Entry Summary.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="insurance" checked={addInsurance} onCheckedChange={(c) => setAddInsurance(!!c)} />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="insurance" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Add Cargo Insurance (+${insuranceFee})
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Full value protection against loss/damage.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-lg font-bold border-t pt-4 mt-2">
+                        <span>Total Estimate</span>
+                        <span>{formatCurrency(totalPrice, selectedCarrier.price?.currency)}</span>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" onClick={handleBook} disabled={loading}>
+                        {loading ? 'Confirming...' : 'Confirm & Book'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -420,7 +513,9 @@ const ClientQuotesPage = () => {
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold text-gray-900">New Quote Request</h2>
-                            <Button variant="ghost" onClick={() => setMode('list')} disabled={isSubmitting}>Cancel</Button>
+                            <div className="flex gap-2">
+                                <Button variant="ghost" onClick={() => setMode('list')} disabled={isSubmitting}>Cancel</Button>
+                            </div>
                         </div>
                         <QuoteRequestForm
                             onSubmit={handleCreateQuote}
@@ -455,5 +550,7 @@ const ClientQuotesPage = () => {
         </div>
     );
 };
+
+// Internal helper for the seed button
 
 export default ClientQuotesPage;

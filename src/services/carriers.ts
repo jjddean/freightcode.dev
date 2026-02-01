@@ -210,16 +210,12 @@ export async function getEasyShipRates(request: RateRequest): Promise<CarrierRat
 export async function getAllCarrierRates(request: RateRequest): Promise<CarrierRate[]> {
   console.log('Fetching rates from all carriers (FORCED MOCK)...', request);
 
-  /* 
   // Force mock rates to ensure UI always shows data
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(getMockAllRates(request));
     }, 800); // Small delay to simulate loading
   });
-  */
-
-
   const ratePromises = [
     getRatesFromShippo(request),
     getReachShipRates(request),

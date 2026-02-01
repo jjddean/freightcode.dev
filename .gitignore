@@ -29,6 +29,37 @@ dist-ssr
 *.exe
 OllamaSetup.exe
 
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.next
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+# installers / binaries
+*.exe
+OllamaSetup.exe
+
 
 # installers / binaries
 *.exe
@@ -36,3 +67,5 @@ OllamaSetup.exe
 
 
 marketing-site/
+mydello_analysis.rtf
+mydello_analysis.txt

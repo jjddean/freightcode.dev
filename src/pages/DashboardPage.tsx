@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MediaCardHeader from '@/components/ui/media-card-header';
 import DataTable from '@/components/ui/data-table';
+import type { Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/layout/Footer';
 import { ShipmentMap } from '@/components/ui/ShipmentMap';
@@ -67,6 +68,15 @@ const DashboardPage = () => {
     value: s.shipmentDetails?.value || 'N/A'
   })) : [];
 
+  interface Shipment {
+    id: any;
+    origin: any;
+    destination: any;
+    status: any;
+    eta: any;
+    value: any;
+  }
+
   // Decide what to show: Hardcoded (for demo feel) or Empty State?
   // Current logic: If live data is empty, show hardcoded. This confuses users when switching orgs.
   // NEW LOGIC: If we are in an ORG, and data is empty, show "No Shipments in [Org Name]".
@@ -74,12 +84,13 @@ const DashboardPage = () => {
   const displayShipments = recentShipments;
 
 
-  const shipmentColumns = [
-    { key: 'id' as string, header: 'Shipment ID', sortable: true },
-    { key: 'origin' as string, header: 'Origin', sortable: true },
-    { key: 'destination' as string, header: 'Destination', sortable: true },
+
+  const shipmentColumns: Column<Shipment>[] = [
+    { key: 'id' as any, header: 'Shipment ID', sortable: true },
+    { key: 'origin' as any, header: 'Origin', sortable: true },
+    { key: 'destination' as any, header: 'Destination', sortable: true },
     {
-      key: 'status' as string,
+      key: 'status' as any,
       header: 'Status',
       sortable: true,
       render: (value: string) => (
@@ -92,8 +103,8 @@ const DashboardPage = () => {
         </span>
       )
     },
-    { key: 'eta' as string, header: 'ETA', sortable: true },
-    { key: 'value' as string, header: 'Value', sortable: true },
+    { key: 'eta' as any, header: 'ETA', sortable: true },
+    { key: 'value' as any, header: 'Value', sortable: true },
   ];
 
   return (

@@ -1,57 +1,70 @@
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
 
-export const clearAllData = mutation({
-    args: {
-        resetSubscriptions: v.optional(v.boolean()),
-    },
-    handler: async (ctx, args) => {
-        // 1. Lists of tables to clear
-        const tables = [
-            "shipments",
-            "trackingEvents",
-            "quotes",
-            "bookings",
-            "documents",
-            "invoices",
-            "paymentAttempts",
-            "auditLogs",
-            "notifications",
-            "kycVerifications",
-            "waitlist",
-            "apiKeys"
-        ];
+import { internalMutation, internalAction } from "./_generated/server";
+import { getFreightEstimates } from "./freightos";
 
-        let deletedCount = 0;
+export const createManualBooking = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        // minimalist booking
+        return await ctx.db.insert("bookings", {
+            bookingId: "TEST-MANUAL-" + Date.now(),
+            quoteId: "Q-MANUAL",
+            carrierQuoteId: "CQ-1",
+            status: "pending_approval",
+            customerDetails: {
+                name: "Manual Test",
+                email: "manual@test.com",
+                phone: "123",
+                company: "Test Co"
+            },
+            pickupDetails: {
+                address: "Origin",
+                date: "2026-01-01",
+                timeWindow: "Any",
+                contactPerson: "A",
+                contactPhone: "1"
+            },
+            deliveryDetails: {
+                address: "Dest",
+                date: "2026-01-02",
+                timeWindow: "Any",
+                contactPerson: "B",
+                contactPhone: "2"
+            },
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    }
+});
 
-        for (const table of tables) {
-            const docs = await ctx.db.query(table as any).collect();
-            for (const doc of docs) {
-                await ctx.db.delete(doc._id);
-                deletedCount++;
-            }
+export const testFreightosIntegration = internalAction({
+    args: {},
+    handler: async (ctx) => {
+        console.log("Testing Freightos Integration...");
+
+        // Test Case: Valid Request
+        const request = {
+            origin: "USLAX",
+            destination: "CNSHA",
+            load: [{
+                quantity: 1,
+                unitType: "container20" as const,
+                unitWeightKg: 1000,
+                unitVolumeCBM: 33
+            }]
+        };
+
+        try {
+            const result = await getFreightEstimates(request);
+            console.log("Freightos Response:", JSON.stringify(result, null, 2));
+
+            if (!result) throw new Error("No response from Freightos");
+            if (!result.OCEAN && !result.AIR) throw new Error("Response missing estimates");
+
+            return { success: true, data: result, keyUsed: !!process.env.FREIGHTOS_API_KEY };
+        } catch (error: any) {
+            console.error("Freightos Test Failed:", error);
+            return { success: false, error: error.message };
         }
-
-        // 2. Reset Subscriptions if requested
-        if (args.resetSubscriptions) {
-            const users = await ctx.db.query("users").collect();
-            for (const user of users) {
-                await ctx.db.patch(user._id, {
-                    subscriptionTier: "free",
-                    subscriptionStatus: undefined,
-                    stripeCustomerId: undefined
-                });
-            }
-
-            const orgs = await ctx.db.query("organizations").collect();
-            for (const org of orgs) {
-                await ctx.db.patch(org._id, {
-                    subscriptionTier: "free",
-                    subscriptionStatus: undefined
-                });
-            }
-        }
-
-        return { success: true, deletedCount, tablesCleared: tables };
-    },
+    }
 });

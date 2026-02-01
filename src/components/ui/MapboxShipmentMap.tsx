@@ -82,8 +82,8 @@ export function MapboxShipmentMap({ className = '' }: MapboxShipmentMapProps) {
 
             // Convert shipments to map data
             const shipmentLocations = liveShipments
-                ?.filter(s => s.shipmentDetails?.origin && s.shipmentDetails?.destination)
-                .map(s => {
+                ?.filter((s: any) => s.shipmentDetails?.origin && s.shipmentDetails?.destination)
+                .map((s: any) => {
                     const originCity = s.shipmentDetails.origin.split(',')[0].trim();
                     const destCity = s.shipmentDetails.destination.split(',')[0].trim();
                     const coords = CITY_COORDS[destCity] || CITY_COORDS[originCity] || [0, 0];
@@ -109,7 +109,7 @@ export function MapboxShipmentMap({ className = '' }: MapboxShipmentMapProps) {
 
             // Add route lines
             if (displayData.length > 1) {
-                const coordinates = displayData.map(s => [s.lng, s.lat]);
+                const coordinates = displayData.map((s: ShipmentLocation) => [s.lng, s.lat]);
 
                 map.current!.addSource('route', {
                     type: 'geojson',

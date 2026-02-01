@@ -231,3 +231,128 @@ export const listAllDocuments = query({
         return docs;
     }
 });
+
+import { internalAction } from "./_generated/server";
+import { api } from "./_generated/api";
+
+export const verifySystemState = internalAction({
+    args: {},
+    handler: async (ctx) => {
+        // 1. Check Bookings
+        const bookings = await ctx.runQuery(api.admin.listAllBookings, {});
+        const pending = await ctx.runQuery(api.bookings.listPendingApprovals, {});
+
+        // Check if getRecentAuditLogs is available, else fallback
+        let logs: any[] = [];
+        try {
+            // @ts-ignore
+            logs = await ctx.runQuery(api.admin.getAuditLogs, {});
+        } catch (e) { console.log("Audit log query failed"); }
+
+        const report: string[] = [];
+        report.push("=== SYSTEM VERIFICATION REPORT ===");
+        report.push(`Total Bookings: ${bookings.length}`);
+        report.push(`Pending Approvals: ${pending.length}`);
+
+        if (bookings.length > 0) {
+            const latest = bookings[0];
+            report.push(`Latest Booking: ${latest.bookingId} | Status: ${latest.status} | Paid: ${latest.paymentStatus || 'pending'}`);
+
+            // Audit Check
+            if (logs.length > 0) {
+                const bookingLogs = logs.filter((l: any) => l.entityId === latest.bookingId);
+                const emailSent = bookingLogs.some((l: any) => l.action === 'email.sent');
+                report.push(`Audit Logs for Latest: ${bookingLogs.length} found`);
+                report.push(`Email Confirmation Sent: ${emailSent ? 'YES' : 'NO'}`);
+            }
+        } else {
+            report.push("WARNING: No bookings found to verify.");
+        }
+
+        console.log(report.join("\n"));
+        return report;
+    }
+});
+
+import { internalMutation } from "./_generated/server";
+
+export const seedTestBooking = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const quoteId = "QT-TEST-" + Date.now();
+
+        // Create dummy booking
+        const bookingId = await ctx.db.insert("bookings", {
+            bookingId: "BK-TEST-" + Date.now(),
+            quoteId: quoteId,
+            carrierQuoteId: "rate-test-1",
+            status: "pending",
+            approvalStatus: "pending", // Ensure it shows in admin
+            customerDetails: {
+                name: "Test User",
+                email: "test@example.com",
+                phone: "555-0199",
+                company: "Test Corp"
+            },
+            pickupDetails: {
+                address: "Shanghai, CN",
+                date: "2026-03-01",
+                timeWindow: "09:00-11:00",
+                contactPerson: "Shipper",
+                contactPhone: "123"
+            },
+            deliveryDetails: {
+                address: "Los Angeles, US",
+                date: "2026-03-20",
+                timeWindow: "09:00-11:00",
+                contactPerson: "Receiver",
+                contactPhone: "456"
+            },
+            price: {
+                amount: 5000,
+                currency: "USD"
+            },
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+
+        return bookingId;
+    }
+});
+
+export const seedContracts = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        // 1. Clear existing
+        const existing = await ctx.db.query("contracts").collect();
+        for (const c of existing) await ctx.db.delete(c._id);
+
+        // 2. Insert Standard Contracts (NACs)
+        // CNSHA (Shanghai) -> USLAX (Los Angeles)
+        await ctx.db.insert("contracts", {
+            carrier: "Maersk",
+            origin: "CNSHA",
+            destination: "USLAX",
+            containerType: "40HC",
+            price: 2200, // Spot is ~$3200
+            // currency, dates
+            currency: "USD",
+            effectiveDate: "2026-01-01",
+            expirationDate: "2026-12-31"
+        });
+
+        // CNSHA -> NLRTM (Rotterdam)
+        await ctx.db.insert("contracts", {
+            carrier: "MSC",
+            origin: "CNSHA",
+            destination: "NLRTM",
+            containerType: "40HC",
+            price: 1800,
+            currency: "USD",
+            effectiveDate: "2026-01-01",
+            expirationDate: "2026-12-31"
+        });
+
+        return "Seeded 2 Contracts (Maersk & MSC)";
+    }
+});

@@ -1,4 +1,4 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query, internalQuery } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { UserJSON } from "@clerk/backend";
 import { v } from "convex/values";
@@ -101,6 +101,13 @@ async function userByExternalId(ctx: QueryCtx, externalId: string) {
     .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
     .unique();
 }
+
+export const getUserByExternalId = internalQuery({
+  args: { externalId: v.string() },
+  handler: async (ctx, { externalId }) => {
+    return await userByExternalId(ctx, externalId);
+  },
+});
 
 // Role management - Only platform admins can change roles
 export const setUserRole = mutation({

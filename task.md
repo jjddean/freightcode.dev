@@ -1,6 +1,7 @@
 # Tasks
 
-# Tasks
+> [!NOTE]
+> **User Preference**: For analysis/reports, always provide **Inline Visual Summaries** (Tables/Charts directly in chat) instead of creating .md files. "Normal Font + Tables".
 
 - [x] Verify AI Browser functionality
     - [x] Run a simple browser subagent test
@@ -223,6 +224,7 @@
 
 # Marketing & PR Execution (Zero Budget)
 - [x] **Phase 0: Setup & Strategy**
+    - [x] **Competitor Analysis: Mydello** (Analysis in `mydello_analysis.rtf`)
     - [x] Messaging Pack (Positioning, Headlines)
     - [x] Topic Clusters (Compliance, Risk, Ops)
     - [x] Content Calendar (30 Days)
@@ -273,3 +275,8 @@
     - [-] Apply `text-sm` / `text-xs` sizing rules
     - [-] Update sidebar theme to `bg-slate-950` and `border-slate-800`
 
+# New Dashboard Test Page
+- [x] Create `src/pages/DashboardTestPage.tsx`
+    - [x] Incorporate GeoRisk styling (Dark mode)
+    - [x] Incorporate Dashboard content (Widgets, Table)
+- [x] Register Route in `App.tsx`

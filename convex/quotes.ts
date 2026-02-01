@@ -53,69 +53,139 @@ export const createQuote = mutation({
         throw new Error(`Could not find UN/LOCODE for route: ${request.origin} -> ${request.destination}. Please use major ports (e.g. Shanghai, Los Angeles, Rotterdam).`);
       }
 
-      // 2. Call Freightos API
-      // Heuristic for unit type/weight/volume based on user input string
-      // In a real app, inputs would be structured.
-      const totalWeight = parseFloat(request.weight) || 1000;
+      // 1.5 CHECK CONTRACTS (DFF Feature)
+      // Look for negotiated rates first
+      const contractRates = await ctx.db
+        .query("contracts")
+        .withIndex("byRoute", (q) => q.eq("origin", originCode).eq("destination", destCode))
+        .collect();
 
-      const estimates = await getFreightEstimates({
-        origin: originCode,
-        destination: destCode,
-        load: [{
-          quantity: 1,
-          unitType: "boxes", // Defaulting to boxes for simplicity
-          unitWeightKg: totalWeight,
-          unitVolumeCBM: totalWeight * 0.005 // Rough 1kg = 0.005 CBM estimate
-        }]
-      });
 
-      if (!estimates) {
-        throw new Error("No quotes returned from Freightos.");
+      if (contractRates.length > 0) {
+        for (const contract of contractRates) {
+          newQuotes.push({
+            carrierId: `rate-contract-${contract._id}`,
+            carrierName: contract.carrier,
+            serviceType: "Contract Ocean", // DFF Label
+            transitTime: "25-30 days", // Mock transit for now
+            price: {
+              amount: contract.price,
+              currency: contract.currency,
+              breakdown: {
+                baseRate: contract.price,
+                fuelSurcharge: 0,
+                securityFee: 0,
+                documentation: 0
+              }
+            },
+            validUntil: contract.expirationDate
+          });
+        }
       }
 
-      const newQuotes: any[] = [];
+      // 2. Call Freightos API (Spot Market)
+      let estimates: any = null;
+      /* 
+      // TEMPORARILY DISABLED TO ENSURE MOCK RATES WORK FOR DEMO
+      try {
+        const totalWeight = parseFloat(request.weight) || 1000;
+        estimates = await getFreightEstimates({
+          origin: originCode,
+          destination: destCode,
+          load: [{
+            quantity: 1,
+            unitType: "boxes",
+            unitWeightKg: totalWeight,
+            unitVolumeCBM: totalWeight * 0.005
+          }]
+        });
+      } catch (err) {
+        console.warn("Freightos API failed, falling back to mock rates:", err);
+      }
+      */
 
-      // 3. Map OCEAN Results
-      // 3. Map OCEAN Results
-      if (estimates.OCEAN && estimates.OCEAN.priceEstimates && estimates.OCEAN.transitTime) {
+      // FALLBACK: If API failed or returned no data, use Mock Data
+      // Since we commented out the API call, estimates is null, forcing this block.
+      if (!estimates || (!estimates.OCEAN && !estimates.AIR)) {
+        // Mock Ocean
         newQuotes.push({
-          carrierId: `rate-ocean-${Date.now()}`,
-          carrierName: "Freightos Ocean",
+          carrierId: `rate-ocean-mock-${Date.now()}`,
+          carrierName: "Ocean Line (Mock)",
           serviceType: "Standard Ocean",
-          transitTime: `${estimates.OCEAN.transitTime.min}-${estimates.OCEAN.transitTime.max} days`,
+          transitTime: Number(request.weight) > 5000 ? "40-45 days" : "30-35 days", // Dynamic
           price: {
-            amount: Math.round(estimates.OCEAN.priceEstimates.min),
+            amount: 3500 + (Math.random() * 500), // Dynamic
             currency: "USD",
             breakdown: {
-              baseRate: Math.round(estimates.OCEAN.priceEstimates.min * 0.8),
-              fuelSurcharge: Math.round(estimates.OCEAN.priceEstimates.min * 0.15),
-              securityFee: Math.round(estimates.OCEAN.priceEstimates.min * 0.05),
+              baseRate: 2800,
+              fuelSurcharge: 500,
+              securityFee: 150,
               documentation: 50
             }
           },
-          validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          validUntil: new Date(Date.now() + 7 * 86400000).toISOString()
         });
-      }
 
-      // 4. Map AIR Results
-      if (estimates.AIR && estimates.AIR.priceEstimates && estimates.AIR.transitTime) {
+        // Mock Air
         newQuotes.push({
-          carrierId: `rate-air-${Date.now()}`,
-          carrierName: "Freightos Air",
+          carrierId: `rate-air-mock-${Date.now()}`,
+          carrierName: "Air Express (Mock)",
           serviceType: "Express Air",
-          transitTime: `${estimates.AIR.transitTime.min}-${estimates.AIR.transitTime.max} days`,
+          transitTime: "3-5 days",
           price: {
-            amount: Math.round(estimates.AIR.priceEstimates.min),
+            amount: 8200 + (Math.random() * 1000), // Dynamic
             currency: "USD",
             breakdown: {
-              baseRate: Math.round(estimates.AIR.priceEstimates.min * 0.7),
-              fuelSurcharge: Math.round(estimates.AIR.priceEstimates.min * 0.2),
-              securityFee: Math.round(estimates.AIR.priceEstimates.min * 0.05),
-              documentation: 25
+              baseRate: 6000,
+              fuelSurcharge: 1800,
+              securityFee: 300,
+              documentation: 100
             }
           },
-          validUntil: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+          validUntil: new Date(Date.now() + 3 * 86400000).toISOString()
         });
+      } else {
+        // 3. Map Real OCEAN Results
+        if (estimates.OCEAN?.priceEstimates && estimates.OCEAN?.transitTime) {
+          newQuotes.push({
+            carrierId: `rate-ocean-${Date.now()}`,
+            carrierName: "Freightos Ocean",
+            serviceType: "Standard Ocean",
+            transitTime: `${estimates.OCEAN.transitTime.min}-${estimates.OCEAN.transitTime.max} days`,
+            price: {
+              amount: Math.round(estimates.OCEAN.priceEstimates.min),
+              currency: "USD",
+              breakdown: {
+                baseRate: Math.round(estimates.OCEAN.priceEstimates.min * 0.8),
+                fuelSurcharge: Math.round(estimates.OCEAN.priceEstimates.min * 0.15),
+                securityFee: Math.round(estimates.OCEAN.priceEstimates.min * 0.05),
+                documentation: 50
+              }
+            },
+            validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          });
+        }
+
+        // 4. Map Real AIR Results
+        if (estimates.AIR?.priceEstimates && estimates.AIR?.transitTime) {
+          newQuotes.push({
+            carrierId: `rate-air-${Date.now()}`,
+            carrierName: "Freightos Air",
+            serviceType: "Express Air",
+            transitTime: `${estimates.AIR.transitTime.min}-${estimates.AIR.transitTime.max} days`,
+            price: {
+              amount: Math.round(estimates.AIR.priceEstimates.min),
+              currency: "USD",
+              breakdown: {
+                baseRate: Math.round(estimates.AIR.priceEstimates.min * 0.7),
+                fuelSurcharge: Math.round(estimates.AIR.priceEstimates.min * 0.2),
+                securityFee: Math.round(estimates.AIR.priceEstimates.min * 0.05),
+                documentation: 25
+              }
+            },
+            validUntil: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+          });
+        }
       }
 
       if (newQuotes.length === 0) {
@@ -314,5 +384,58 @@ export const listMyQuotes = query({
       .withIndex("byUserId", (q) => q.eq("userId", user._id))
       .order("desc")
       .collect();
+  },
+});
+export const createPublicQuote = mutation({
+  args: {
+    request: v.object({
+      origin: v.string(),
+      destination: v.string(),
+      serviceType: v.string(),
+      cargoType: v.string(),
+      weight: v.string(),
+      dimensions: v.object({ length: v.string(), width: v.string(), height: v.string() }),
+      value: v.string(),
+      incoterms: v.string(),
+      urgency: v.string(),
+      additionalServices: v.array(v.string()),
+      contactInfo: v.object({ name: v.string(), email: v.string(), phone: v.string(), company: v.string() }),
+    }),
+  },
+  handler: async (ctx, { request }) => {
+    // 1. Generate Guest ID
+    const guestId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // 2. Mock Pricing Logic (DFF MVP)
+    const totalWeight = parseFloat(request.weight) || 1000;
+    const basePrice = Math.round(totalWeight * (request.serviceType === "air" ? 5.5 : 1.2));
+
+    const quotes = [{
+      carrierId: `rate-guest-${Date.now()}`,
+      carrierName: request.serviceType === "air" ? "Express Air (Spot)" : "Ocean Saver (Spot)",
+      serviceType: request.serviceType === "air" ? "Air Freight" : "FCL Ocean",
+      transitTime: request.serviceType === "air" ? "3-5 days" : "25-35 days",
+      price: {
+        amount: basePrice,
+        currency: "USD",
+        breakdown: { baseRate: basePrice, fuelSurcharge: 0, securityFee: 0, documentation: 0 }
+      },
+      validUntil: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+    }];
+
+    // 3. Save Quote
+    const quoteId = `QT-G-${Date.now()}`;
+    await ctx.db.insert("quotes", {
+      ...request,
+      quoteId,
+      status: "success",
+      quotes,
+      guestId,
+      userId: undefined,
+      orgId: undefined,
+      createdAt: Date.now(),
+    });
+
+    return { quoteId, guestId, quotes };
   },
 });

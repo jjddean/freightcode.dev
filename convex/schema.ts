@@ -85,10 +85,37 @@ export default defineSchema({
       validUntil: v.string(),
     })),
     userId: v.optional(v.id("users")),
+    guestId: v.optional(v.string()), // DFF: For public quoting
     orgId: v.optional(v.string()), // Multi-tenancy
     createdAt: v.number(),
   }).index("byUserId", ["userId"])
     .index("byQuoteId", ["quoteId"])
+    .index("byGuestId", ["guestId"])
+    .index("byOrgId", ["orgId"]),
+
+  // DFF: Negotiated Rates
+  contracts: defineTable({
+    carrier: v.string(), // "Maersk", "MSC"
+    origin: v.string(), // UN/LOCODE
+    destination: v.string(),
+    containerType: v.string(), // "20GP", "40HC"
+    price: v.number(),
+    currency: v.string(),
+    effectiveDate: v.string(),
+    expirationDate: v.string(),
+    orgId: v.optional(v.string()), // If contract is specific to an Org (optional)
+  }).index("byRoute", ["origin", "destination"])
+    .index("byCarrier", ["carrier"]),
+
+  // DFF: Carrier API Integrations (Keys)
+  integrations: defineTable({
+    provider: v.string(), // "project44", "freightos", "vizion"
+    apiKey: v.optional(v.string()), // Encrypted or reference
+    apiSecret: v.optional(v.string()),
+    webhookSecret: v.optional(v.string()),
+    status: v.string(), // "active", "inactive"
+    orgId: v.optional(v.string()), // If org brings their own keys
+  }).index("byProvider", ["provider"])
     .index("byOrgId", ["orgId"]),
 
   shipments: defineTable({
@@ -118,6 +145,15 @@ export default defineSchema({
     riskLevel: v.optional(v.string()), // "low", "medium", "high"
     flaggedBy: v.optional(v.string()), // User ID of admin who flagged it
     flagReason: v.optional(v.string()),
+
+    // DFF MVP: Customs Integrations
+    customs: v.optional(v.object({
+      brokerName: v.optional(v.string()), // e.g. "Flexport Customs LLC"
+      brokerEmail: v.optional(v.string()),
+      filingStatus: v.optional(v.string()), // "pending", "filed", "cleared", "held"
+      entryNumber: v.optional(v.string()), // 7501 Entry Number
+      clearedAt: v.optional(v.number()),
+    })),
 
     userId: v.optional(v.id("users")),
     orgId: v.optional(v.string()), // Multi-tenancy

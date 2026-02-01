@@ -104,3 +104,23 @@ This log documents the major stages of development for the FreightCode / MarketL
 - **App**: Vercel (Production)
 - **Marketing**: Vercel (Production)
 - **Database**: Convex Cloud
+
+## Phase 7: Digital Freight Forwarder MVP ✅ (Current)
+**Goal**: Transform marketplace into a functional Digital Freight Forwarder (DFF).
+- [x] **Guest Quoting (Backend)**: Added `createPublicQuote` mutation for non-authenticated pricing.
+- [x] **Contracts Engine**: Implemented `contracts` table and logic to prioritize negotiated rates.
+- [x] **Checkout Integrations**: Added Customs Brokerage & Insurance upsells to booking flow.
+- [x] **Seeding**: Created `seedContracts` script for testing Maersk/MSC rates.
+- [ ] **Guest Quoting (Frontend)**: ~Widget implemented~ (Reverted due to layout issues, pending redesign).
+
+### [2026-02-01] - DFF Core Implementation
+- **Backend**: Public API endpoints for quoting live.
+- **Frontend**: "Add-on Services" modal live in Client Portal.
+- **Note**: Guest Quote Widget was deployed to `marketing-site` but reverted to maintain design integrity.
+
+### [2026-02-01] - Security Remediation & Revert
+- **Action**: Removed exposed private key files (`scripts/encode-key.js`, `key_b64_retry.txt`) for security.
+- **Attempted**: Replaced `Math.random` with `crypto.getRandomValues` in `developer.ts` and `documents.ts`.
+- **Result**: Caused backend crash compatible with Convex runtime.
+- **Remediation**: Emergency revert applied. Code returned to `Math.random` (stable).
+- **Status**: Private keys deleted (Secure). App Logic (Reverted/Stable). Marketing Site (Reverted/Stable).
