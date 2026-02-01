@@ -141,16 +141,6 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                     contactPhone: contact.phone || 'N/A',
                 },
                 specialInstructions: notes.join(", ") || "Standard handling",
-                price: {
-                    amount: totalPrice,
-                    currency: selectedCarrier.price?.currency || "USD",
-                    breakdown: {
-                        baseRate: basePrice,
-                        documentation: addCustoms ? customsFee : 0,
-                        securityFee: addInsurance ? insuranceFee : 0,
-                        fuelSurcharge: 0
-                    }
-                }
             });
 
             // Optimistic ID if backend doesn't return one immediately (for upsertShipment)
@@ -177,7 +167,7 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                         destination: quote.destination || '',
                         value: quote.value || '',
                     },
-                    riskLevel: addInsurance ? 'low' : 'medium', // Insurance lowers risk
+                    riskLevel: (addInsurance ? 'low' : 'medium') as any, // Cast to expected union type
                     customs: addCustoms ? { filingStatus: 'pending', brokerName: 'Freightcode Customs' } : undefined,
                     events: [
                         {

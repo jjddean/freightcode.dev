@@ -53,6 +53,9 @@ export const createQuote = mutation({
         throw new Error(`Could not find UN/LOCODE for route: ${request.origin} -> ${request.destination}. Please use major ports (e.g. Shanghai, Los Angeles, Rotterdam).`);
       }
 
+      // Initialize quotes array
+      const newQuotes: any[] = [];
+
       // 1.5 CHECK CONTRACTS (DFF Feature)
       // Look for negotiated rates first
       const contractRates = await ctx.db

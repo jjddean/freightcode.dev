@@ -33,6 +33,15 @@ export const upsertShipment = mutation({
           description: v.string(),
         })
       ),
+      // Add missing fields to match schema and frontend usage
+      riskLevel: v.optional(v.string()),
+      customs: v.optional(v.object({
+        brokerName: v.optional(v.string()),
+        brokerEmail: v.optional(v.string()),
+        filingStatus: v.optional(v.string()),
+        entryNumber: v.optional(v.string()),
+        clearedAt: v.optional(v.number()),
+      })),
     }),
   },
   handler: async (ctx, { shipmentId, tracking }) => {
@@ -64,6 +73,8 @@ export const upsertShipment = mutation({
         trackingNumber: tracking.trackingNumber,
         service: tracking.service,
         shipmentDetails: tracking.shipmentDetails,
+        riskLevel: tracking.riskLevel, // Support DFF
+        customs: tracking.customs,     // Support DFF
         lastUpdated: Date.now(),
         ...(existing.userId ? {} : currentUserId ? { userId: currentUserId as any } : {}),
       });
@@ -139,6 +150,8 @@ export const upsertShipment = mutation({
         trackingNumber: tracking.trackingNumber,
         service: tracking.service,
         shipmentDetails: tracking.shipmentDetails,
+        riskLevel: tracking.riskLevel, // Support DFF
+        customs: tracking.customs,     // Support DFF
         lastUpdated: Date.now(),
         createdAt: Date.now(),
         userId: currentUserId as any,
