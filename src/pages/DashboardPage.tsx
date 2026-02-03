@@ -116,7 +116,7 @@ const DashboardPage = () => {
 
       {/* Desktop Dashboard */}
       <div className="hidden md:block">
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="px-4 sm:px-6 lg:px-8 py-4">
           {/* Dashboard Header */}
           <MediaCardHeader
             title="Shipment Overview"
@@ -124,7 +124,7 @@ const DashboardPage = () => {
             description="Monitor your active shipments, track documentation, and manage logistics operations."
             backgroundImage="/dashboard-bg.jpg"
             overlayOpacity={0.6}
-            className="h-48 md:h-64 mb-8"
+            className="mb-8"
           />
 
           {/* Live Metrics */}
@@ -147,8 +147,8 @@ const DashboardPage = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <span className="text-yellow-600 text-sm">📋</span>
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">📋</span>
                   </div>
                 </div>
                 <div className="ml-4">
@@ -161,8 +161,8 @@ const DashboardPage = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <span className="text-green-600 text-sm">💰</span>
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">💰</span>
                   </div>
                 </div>
                 <div className="ml-4">
@@ -175,12 +175,13 @@ const DashboardPage = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 relative">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <span className="text-purple-600 text-sm">📊</span>
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">📊</span>
                   </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">This Month</p>
+                  <p className="text-sm font-medium text-gray-500">Revenue</p>
                   <p className="text-2xl font-semibold text-gray-900">£{(liveMetrics.monthlyRevenue / 1000).toFixed(0)}K</p>
                 </div>
               </div>

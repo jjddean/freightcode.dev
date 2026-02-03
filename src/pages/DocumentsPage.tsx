@@ -367,7 +367,7 @@ const DocumentsPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="px-4 sm:px-6 lg:px-8 py-6">
+            <div className="px-4 sm:px-6 lg:px-8 py-4">
 
                 <MediaCardHeader
                     title="Documents"
@@ -380,12 +380,70 @@ const DocumentsPage = () => {
 
                 {/* Stats Summary */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    {/* 1. Total Documents */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                         <div className="flex items-center">
-                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">📄</div>
+                            <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-blue-600 text-sm">📄</span>
+                                </div>
+                            </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Documents</p>
-                                <p className="text-2xl font-semibold text-blue-600">{liveDocuments?.length || 0}</p>
+                                <h3 className="text-sm font-medium text-gray-500">Total Documents</h3>
+                                <p className="text-2xl font-semibold text-gray-900">{liveDocuments?.length || 0}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. Pending Signatures */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-blue-600 text-sm">✍️</span>
+                                </div>
+                            </div>
+                            <div className="ml-4">
+                                <h3 className="text-sm font-medium text-gray-500">Pending Signatures</h3>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {liveDocuments?.filter((d: any) => d.docusign?.status === 'sent' || d.status === 'pending').length || 0}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Completed */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-blue-600 text-sm">✅</span>
+                                </div>
+                            </div>
+                            <div className="ml-4">
+                                <h3 className="text-sm font-medium text-gray-500">Completed</h3>
+                                <p className="text-sm font-medium text-gray-500">Fully executed</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {liveDocuments?.filter((d: any) => d.docusign?.status === 'completed' || d.status === 'approved').length || 0}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. Drafts */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-blue-600 text-sm">📝</span>
+                                </div>
+                            </div>
+                            <div className="ml-4">
+                                <h3 className="text-sm font-medium text-gray-500">Drafts</h3>
+                                <p className="text-sm font-medium text-gray-500">In progress</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {liveDocuments?.filter((d: any) => d.status === 'draft').length || 0}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -406,13 +464,13 @@ const DocumentsPage = () => {
                             <option value="air_waybill">Air Waybill</option>
                         </select>
                     </div>
-                    <div className="flex space-x-3">
+                    <div className="flex items-center gap-2">
                         <SmartUploadButton onParse={async (data) => {
                             setAutofillData(data);
                             setCreateOpen(true);
                         }} />
 
-                        <Button variant="outline" onClick={() => {
+                        <Button variant="outline" className="gap-2" onClick={() => {
                             if (tableData.length === 0) {
                                 toast.error("No documents to export");
                                 return;
@@ -434,13 +492,13 @@ const DocumentsPage = () => {
                                 toast.success("Exporting documents...");
                             }
                         }}>
-                            <Upload className="h-4 w-4 mr-2 rotate-180" />
+                            <Upload className="h-4 w-4 rotate-180" />
                             Export CSV
                         </Button>
                         <a ref={downloadRef} style={{ display: 'none' }} />
 
-                        <Button onClick={() => setCreateOpen(true)}>
-                            <Upload className="h-4 w-4 mr-2" />
+                        <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+                            <Upload className="h-4 w-4" />
                             Upload Invoice/List
                         </Button>
                     </div>

@@ -8,12 +8,8 @@ import Footer from '@/components/layout/Footer';
 import AnalyticsDashboard from '@/components/charts/AnalyticsDashboard';
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useFeature } from '@/hooks/useFeature';
-import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
 
 const ReportsPage = () => {
-  const hasCustomReports = useFeature("ADVANCED_ANALYTICS");
   const [activeTab, setActiveTab] = useState('dashboard');
   const downloadRef = React.useRef<HTMLAnchorElement>(null);
 
@@ -136,7 +132,7 @@ const ReportsPage = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hidden download anchor */}
       <a ref={downloadRef} style={{ display: 'none' }} />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
         {/* Reports Header */}
         <MediaCardHeader
           title="Analytics & Reports"
@@ -227,7 +223,7 @@ const ReportsPage = () => {
               <h2 className="text-xl font-semibold text-gray-900">Custom Report Builder</h2>
             </div>
 
-            {hasCustomReports ? (
+            <div>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Create Custom Report</h3>
 
@@ -311,20 +307,7 @@ const ReportsPage = () => {
                   <Button>Generate Report</Button>
                 </div>
               </div>
-            ) : (
-              <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-12 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 mb-4">
-                  <Lock className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Custom Reports are Pro Features</h3>
-                <p className="text-gray-500 max-w-md mx-auto mb-6">
-                  Unlock the ability to build, schedule, and export custom reports tailored to your business needs with our Pro Analytics suite.
-                </p>
-                <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600">
-                  <Link to="/payments?tab=subscription">Upgrade to Pro</Link>
-                </Button>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>

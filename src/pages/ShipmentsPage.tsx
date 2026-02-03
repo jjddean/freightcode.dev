@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import MediaCardHeader from '@/components/ui/media-card-header';
 import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import AdvancedSearch from '@/components/ui/advanced-search';
 import { LiveVesselMap } from '@/components/ui/live-vessel-map';
 import { ShipmentMap } from '@/components/ui/ShipmentMap';
 import { useQuery, useAction, useMutation } from "convex/react";
@@ -41,6 +40,23 @@ const ShipmentsPage = () => {
   const [emailing, setEmailing] = useState(false);
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const createShipment = useMutation(api.shipments.upsertShipment);
+
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+  const [showFilters, setShowFilters] = useState(false);
+
+  const handleFilterChange = (key: string, value: any) => {
+    const newFilters = { ...activeFilters };
+    if (value === '' || value === null || (Array.isArray(value) && value.length === 0)) {
+      delete newFilters[key];
+    } else {
+      newFilters[key] = value;
+    }
+    setActiveFilters(newFilters);
+    // Instant update
+    handleSearch(searchTerm, newFilters);
+  };
 
   // Recipient email state (defaults to user logged in email)
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -417,14 +433,14 @@ const ShipmentsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Shipments Content */}
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
         <MediaCardHeader
           title="Active Shipments"
           subtitle="Shipments"
           description="Track and manage all your active freight shipments globally."
           backgroundImage="/shipments-bg.jpg"
           overlayOpacity={0.5}
-          className="h-48 md:h-64 mb-8"
+          className="mb-8"
         />
 
         {/* Action Toolbar */}
@@ -453,17 +469,7 @@ const ShipmentsPage = () => {
           </div>
         </div>
 
-        {/* Advanced Search */}
-        <div className="mb-6">
-          <AdvancedSearch
-            filters={searchFilters}
-            onSearch={handleSearch}
-            onClear={handleClearSearch}
-            placeholder="Search shipments by ID, route, carrier, or container..."
-          />
-        </div>
-
-        {/* Actions Bar */}
+        {/* Actions Bar (Moved above/merged conceptually, but keeping layout) */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-900">
             {activeTab === 'active' ? 'Active' : 'Completed'} Shipments
@@ -472,38 +478,198 @@ const ShipmentsPage = () => {
             </span>
           </h2>
 
-          {/* Usage Indicator for Free Plan */}
-          {!hasPredictiveInsights && (
-            <div className="flex items-center mr-4">
-              <div className="text-xs text-gray-500 mr-2">
-                <span className="font-medium text-gray-900">{filteredShipments.active.length}</span>
-                /5 Free Shipments
+          <div className="flex items-center gap-3">
+            {/* Usage Indicator for Free Plan */}
+            {!hasPredictiveInsights && (
+              <div className="flex items-center mr-2">
+                <div className="text-xs text-gray-500 mr-2">
+                  <span className="font-medium text-gray-900">{filteredShipments.active.length}</span>
+                  /5 Free
+                </div>
+                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${filteredShipments.active.length >= 5 ? 'bg-red-500' : 'bg-blue-500'}`}
+                    style={{ width: `${Math.min(100, (filteredShipments.active.length / 5) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${filteredShipments.active.length >= 5 ? 'bg-red-500' : 'bg-blue-500'}`}
-                  style={{ width: `${Math.min(100, (filteredShipments.active.length / 5) * 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
+            )}
 
-          <Button variant="outline">Export</Button>
-          <Button
-            onClick={handleCreateTestShipment}
-            disabled={!hasPredictiveInsights && filteredShipments.active.length >= 5}
-            className={!hasPredictiveInsights && filteredShipments.active.length >= 5 ? "opacity-50 cursor-not-allowed" : ""}
-          >
-            {!hasPredictiveInsights && filteredShipments.active.length >= 5 ? "Limit Reached" : "New Shipment"}
-          </Button>
+            {/* Filter Buttons */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`relative ${showFilters ? 'bg-gray-100' : ''}`}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.586l-4-2v-2.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+                {Object.keys(activeFilters).length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white shadow-sm">
+                    {Object.keys(activeFilters).length}
+                  </span>
+                )}
+              </Button>
+
+              {(searchTerm || Object.keys(activeFilters).length > 0) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setActiveFilters({});
+                    setShowFilters(false);
+                    handleClearSearch();
+                  }}
+                  className="text-gray-500 hover:text-gray-900"
+                >
+                  Clear check
+                </Button>
+              )}
+            </div>
+
+            <Button variant="outline" size="sm">Export</Button>
+            <Button
+              size="sm"
+              onClick={handleCreateTestShipment}
+              disabled={!hasPredictiveInsights && filteredShipments.active.length >= 5}
+              className={!hasPredictiveInsights && filteredShipments.active.length >= 5 ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {!hasPredictiveInsights && filteredShipments.active.length >= 5 ? "Limit Reached" : "New Shipment"}
+            </Button>
+          </div>
         </div>
 
-        {/* Shipments Table */}
+        {/* Shipments Table with Integrated Search & Filter */}
         <DataTable
           data={filteredShipments[activeTab as keyof typeof filteredShipments]}
           columns={shipmentColumns}
-          searchPlaceholder="Search within results..."
+          searchPlaceholder="Search all shipments (ID, route, carrier, container)"
           rowsPerPage={10}
+
+          // Controlled Search
+          searchValue={searchTerm}
+          onSearchChange={(val) => {
+            setSearchTerm(val);
+            handleSearch(val, activeFilters);
+          }}
+
+          // Toolbar Actions (Filter Button)
+          toolbarActions={
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`relative ${showFilters ? 'bg-gray-100' : ''}`}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.586l-4-2v-2.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+                {Object.keys(activeFilters).length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white shadow-sm">
+                    {Object.keys(activeFilters).length}
+                  </span>
+                )}
+              </Button>
+
+              {(searchTerm || Object.keys(activeFilters).length > 0) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setActiveFilters({});
+                    setShowFilters(false);
+                    handleClearSearch();
+                  }}
+                  className="text-gray-500 hover:text-gray-900"
+                >
+                  Clear check
+                </Button>
+              )}
+            </div>
+          }
+
+          // Filter Panel Content
+          filterPanel={showFilters && (
+            <div className="border-t border-gray-200 pt-4 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {searchFilters.map((filter) => (
+                  <div key={filter.key}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {filter.label}
+                    </label>
+                    {filter.type === 'select' && (
+                      <select
+                        value={activeFilters[filter.key] || ''}
+                        onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+                      >
+                        <option value="">All {filter.label}</option>
+                        {filter.options?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {filter.type === 'multiselect' && (
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                        {filter.options?.map((option) => (
+                          <label key={option.value} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={(activeFilters[filter.key] as string[] || [])?.includes(option.value)}
+                              onChange={(e) => {
+                                const current = activeFilters[filter.key] as string[] || [];
+                                const next = e.target.checked
+                                  ? [...current, option.value]
+                                  : current.filter(v => v !== option.value);
+                                handleFilterChange(filter.key, next);
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                            />
+                            <span className="text-sm text-gray-700">{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {filter.type === 'range' && (
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          className="h-9"
+                          value={activeFilters[filter.key]?.min || ''}
+                          onChange={(e) => handleFilterChange(filter.key, { ...activeFilters[filter.key], min: e.target.value })}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          className="h-9"
+                          value={activeFilters[filter.key]?.max || ''}
+                          onChange={(e) => handleFilterChange(filter.key, { ...activeFilters[filter.key], max: e.target.value })}
+                        />
+                      </div>
+                    )}
+                    {filter.type === 'date' && (
+                      <Input
+                        type="date"
+                        className="h-9"
+                        value={activeFilters[filter.key] || ''}
+                        onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         />
 
         {/* Real-Time Tracking for Active Shipments */}

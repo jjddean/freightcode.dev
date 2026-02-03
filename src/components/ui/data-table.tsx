@@ -15,6 +15,10 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   searchable?: boolean;
   searchPlaceholder?: string;
+  onSearchChange?: (value: string) => void;
+  searchValue?: string;
+  toolbarActions?: React.ReactNode;
+  filterPanel?: React.ReactNode;
   className?: string;
   rowsPerPage?: number;
 }
@@ -24,20 +28,44 @@ function DataTable<T extends Record<string, any>>({
   columns,
   searchable = true,
   searchPlaceholder = "Search...",
+  onSearchChange,
+  searchValue,
+  toolbarActions,
+  filterPanel,
   className,
   rowsPerPage = 10
 }: DataTableProps<T>) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [internalSearchTerm, setInternalSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter data based on search term
-  const filteredData = data.filter(row =>
-    Object.values(row).some(value =>
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  // Use controlled or uncontrolled search term
+  const activeSearchTerm = searchValue !== undefined ? searchValue : internalSearchTerm;
+
+  const handleSearchChange = (value: string) => {
+    if (onSearchChange) {
+      onSearchChange(value);
+    } else {
+      setInternalSearchTerm(value);
+    }
+  };
+
+  // Filter data based on search term (only if internal search is active)
+  // If controlled (onSearchChange provided), assume parent handles filtering OR we still filter?
+  // Usually if controlled, parent handles it.
+  // BUT, to keep backward compat and flexibility:
+  // If `searchValue` is provided, we use it for input.
+  // We ONLY filter internally if `onSearchChange` is NOT provided (fully internal mode)
+  // OR if the user expects us to filter controlled data?
+  // Let's assume: if onSearchChange is present, PARENT filters.
+  const filteredData = onSearchChange
+    ? data
+    : data.filter(row =>
+      Object.values(row).some(value =>
+        String(value).toLowerCase().includes(activeSearchTerm.toLowerCase())
+      )
+    );
 
   // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
@@ -67,23 +95,29 @@ function DataTable<T extends Record<string, any>>({
 
   return (
     <div className={cn("bg-white rounded-lg border border-gray-200 shadow-sm", className)}>
-      {/* Search Bar */}
-      {searchable && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative max-w-sm">
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+      {/* Search Bar & Toolbar */}
+      {(searchable || toolbarActions) && (
+        <div className="p-4 border-b border-gray-200 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            {searchable && (
+              <div className="relative flex-1 max-w-sm">
+                <input
+                  type="text"
+                  placeholder={searchPlaceholder}
+                  value={activeSearchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+            )}
+            {toolbarActions}
           </div>
+          {filterPanel}
         </div>
       )}
 

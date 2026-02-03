@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import MediaCardHeader from '@/components/ui/media-card-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  User, Users, Key,
+  Mail, Globe, Clock,
+  Edit, Smartphone
+} from 'lucide-react';
 
 const AccountPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
-
   const liveUser = useQuery(api.users.current);
 
   // Mock user data fallback
@@ -23,362 +37,276 @@ const AccountPage = () => {
 
   const userData = liveUser ? {
     ...HARDCODED_USER,
-    name: liveUser.name,
+    name: liveUser.name || HARDCODED_USER.name,
+    email: liveUser.email || HARDCODED_USER.email,
   } : HARDCODED_USER;
 
-  // Mock notification settings
-  const notificationSettings = [
-    { id: 'shipment_updates', name: 'Shipment Status Updates', email: true, sms: true, app: true },
-    { id: 'document_alerts', name: 'Document Requirements', email: true, sms: false, app: true },
-    { id: 'payment_reminders', name: 'Payment Reminders', email: true, sms: true, app: true },
-    { id: 'compliance_updates', name: 'Compliance Updates', email: true, sms: false, app: false },
-    { id: 'promotional', name: 'Promotional Messages', email: false, sms: false, app: false },
-  ];
-
-  // Mock team members
-  const teamMembers = [
-    { id: 1, name: 'Alex Johnson', email: 'alex.johnson@example.com', role: 'Admin', status: 'Active' },
-    { id: 2, name: 'Sarah Williams', email: 'sarah.w@example.com', role: 'User', status: 'Active' },
-    { id: 3, name: 'Michael Chen', email: 'michael.c@example.com', role: 'User', status: 'Invited' },
-  ];
+  const initials = userData.name.split(' ').map((n: string) => n[0]).join('');
 
   return (
-    <div className="page-container">
-      <h1>Account Settings</h1>
-      <p className="account-intro">Manage your profile, security, and notification preferences.</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-8">
+        <MediaCardHeader
+          title="Account Settings"
+          subtitle="Profile & Preferences"
+          description="Manage your personal information, security settings, and team access."
+          backgroundImage="https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+          overlayOpacity={0.6}
+        />
 
-      <div className="page-content">
-        <div className="account-tabs">
-          <button
-            className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            Profile
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'security' ? 'active' : ''}`}
-            onClick={() => setActiveTab('security')}
-          >
-            Security
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('notifications')}
-          >
-            Notifications
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'team' ? 'active' : ''}`}
-            onClick={() => setActiveTab('team')}
-          >
-            Team Access
-          </button>
+        {/* Matching Reports Page Tab Style */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {['Profile', 'Security', 'Notifications', 'Team'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab.toLowerCase())}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.toLowerCase()
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
 
-        {activeTab === 'profile' && (
-          <div className="profile-section">
-            <div className="profile-header">
-              <div className="profile-avatar">
-                {userData.name.split(' ').map((n: string) => n[0]).join('')}
-              </div>
-              <div className="profile-info">
-                <h2>{userData.name}</h2>
-                <p>{userData.company} • {userData.role}</p>
-                <p>Member since {userData.joinDate}</p>
-              </div>
-              <button className="edit-profile-btn">Edit Profile</button>
-            </div>
-
-            <div className="profile-details">
-              <div className="details-card">
-                <h3>Contact Information</h3>
-                <div className="detail-item">
-                  <div className="detail-label">Email</div>
-                  <div className="detail-value">{userData.email}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Phone</div>
-                  <div className="detail-value">{userData.phone}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Company</div>
-                  <div className="detail-value">{userData.company}</div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Role</div>
-                  <div className="detail-value">{userData.role}</div>
-                </div>
-              </div>
-
-              <div className="details-card">
-                <h3>Preferences</h3>
-                <div className="detail-item">
-                  <div className="detail-label">Language</div>
-                  <div className="detail-value">
-                    {userData.language}
-                    <button className="small-edit-btn">Change</button>
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (<div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Profile Card */}
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle>My Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center text-center">
+                <Avatar className="h-24 w-24 mb-4">
+                  <AvatarFallback className="text-xl bg-blue-100 text-blue-600">{initials}</AvatarFallback>
+                </Avatar>
+                <h2 className="text-xl font-semibold text-gray-900">{userData.name}</h2>
+                <p className="text-sm text-gray-500 mb-1">{userData.role}</p>
+                <p className="text-sm text-gray-500 mb-4">{userData.company}</p>
+                <Button className="w-full" variant="outline">
+                  <Edit className="h-4 w-4 mr-2" /> Edit Profile
+                </Button>
+                <div className="mt-6 w-full text-left space-y-3">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Clock className="h-4 w-4 mr-3 text-gray-400" />
+                    <span>Joined {userData.joinDate}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Globe className="h-4 w-4 mr-3 text-gray-400" />
+                    <span>{userData.timezone}</span>
                   </div>
                 </div>
-                <div className="detail-item">
-                  <div className="detail-label">Time Zone</div>
-                  <div className="detail-value">
-                    {userData.timezone}
-                    <button className="small-edit-btn">Change</button>
+              </CardContent>
+            </Card>
+
+            {/* Details Card */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+                <CardDescription>Update your contact details and preferences.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input defaultValue={userData.name} />
                   </div>
-                </div>
-                <div className="detail-item">
-                  <div className="detail-label">Date Format</div>
-                  <div className="detail-value">
-                    MM/DD/YYYY
-                    <button className="small-edit-btn">Change</button>
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
+                    <Input defaultValue={userData.email} />
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'security' && (
-          <div className="security-section">
-            <div className="security-card">
-              <h3>Account Security</h3>
-
-              <div className="security-item">
-                <div className="security-info">
-                  <h4>Password</h4>
-                  <p>Last changed 45 days ago</p>
-                </div>
-                <button className="security-action-btn">Change Password</button>
-              </div>
-
-              <div className="security-item">
-                <div className="security-info">
-                  <h4>Two-Factor Authentication</h4>
-                  <p>{userData.twoFactorEnabled ? 'Enabled' : 'Disabled'}</p>
-                </div>
-                <button className="security-action-btn">
-                  {userData.twoFactorEnabled ? 'Manage 2FA' : 'Enable 2FA'}
-                </button>
-              </div>
-
-              <div className="security-item">
-                <div className="security-info">
-                  <h4>Login History</h4>
-                  <p>Last login: {userData.lastLogin}</p>
-                </div>
-                <button className="security-action-btn">View History</button>
-              </div>
-            </div>
-
-            <div className="security-card">
-              <h3>API Access</h3>
-              <p>Manage API keys for integrating with your systems</p>
-
-              <div className="api-keys">
-                <div className="api-key-item">
-                  <div className="api-key-info">
-                    <h4>Production API Key</h4>
-                    <p>Created: October 10, 2023</p>
+                  <div className="space-y-2">
+                    <Label>Phone Number</Label>
+                    <Input defaultValue={userData.phone} />
                   </div>
-                  <div className="api-key-actions">
-                    <button className="view-key-btn">View Key</button>
-                    <button className="regenerate-key-btn">Regenerate</button>
+                  <div className="space-y-2">
+                    <Label>Company Name</Label>
+                    <Input defaultValue={userData.company} />
                   </div>
                 </div>
 
-                <div className="api-key-item">
-                  <div className="api-key-info">
-                    <h4>Test API Key</h4>
-                    <p>Created: October 10, 2023</p>
-                  </div>
-                  <div className="api-key-actions">
-                    <button className="view-key-btn">View Key</button>
-                    <button className="regenerate-key-btn">Regenerate</button>
-                  </div>
-                </div>
-              </div>
+                <Separator />
 
-              <div className="api-documentation">
-                <h4>API Documentation</h4>
-                <p>Learn how to integrate with our API</p>
-                <button className="view-docs-btn">View Documentation</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'notifications' && (
-          <div className="notifications-section">
-            <div className="notifications-header">
-              <h3>Notification Preferences</h3>
-              <p>Choose how you want to receive notifications</p>
-            </div>
-
-            <div className="notification-channels">
-              <div className="channel-header">
-                <div className="notification-type">Notification Type</div>
-                <div className="channel-options">
-                  <div className="channel">Email</div>
-                  <div className="channel">SMS</div>
-                  <div className="channel">App</div>
-                </div>
-              </div>
-
-              {notificationSettings.map((setting, index) => (
-                <div key={index} className="notification-item">
-                  <div className="notification-type">{setting.name}</div>
-                  <div className="channel-options">
-                    <div className="channel">
-                      <input
-                        type="checkbox"
-                        id={`email-${setting.id}`}
-                        checked={setting.email}
-                      />
-                      <label htmlFor={`email-${setting.id}`}></label>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-4">Preferences</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Language</Label>
+                      <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option>English (US)</option>
+                        <option>Spanish</option>
+                        <option>French</option>
+                      </select>
                     </div>
-                    <div className="channel">
-                      <input
-                        type="checkbox"
-                        id={`sms-${setting.id}`}
-                        checked={setting.sms}
-                      />
-                      <label htmlFor={`sms-${setting.id}`}></label>
+                    <div className="space-y-2">
+                      <Label>Time Zone</Label>
+                      <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option>{userData.timezone}</option>
+                        <option>Pacific Time (PT)</option>
+                        <option>Central Time (CT)</option>
+                      </select>
                     </div>
-                    <div className="channel">
-                      <input
-                        type="checkbox"
-                        id={`app-${setting.id}`}
-                        checked={setting.app}
-                      />
-                      <label htmlFor={`app-${setting.id}`}></label>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                <Button variant="ghost">Cancel</Button>
+                <Button>Save Changes</Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>)}
+
+        {/* SECURITY TAB */}
+        {activeTab === 'security' && (<div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>Manage your password and authentication methods.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium text-gray-900">Password</h4>
+                  <p className="text-sm text-gray-500">Last changed 45 days ago</p>
+                </div>
+                <Button variant="outline">Change Password</Button>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h4>
+                  <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
+                </div>
+                <Button variant={userData.twoFactorEnabled ? "outline" : "default"}>
+                  {userData.twoFactorEnabled ? "Manage 2FA" : "Enable 2FA"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>API Access</CardTitle>
+              <CardDescription>Manage API keys for system integration.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center">
+                  <Key className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="font-medium text-sm text-gray-900">Production Key</p>
+                    <p className="text-xs text-gray-500">Created Oct 10, 2023</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm">View</Button>
+                  <Button variant="outline" size="sm">Regenerate</Button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center">
+                  <Key className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="font-medium text-sm text-gray-900">Test Key</p>
+                    <p className="text-xs text-gray-500">Created Oct 10, 2023</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm">View</Button>
+                  <Button variant="outline" size="sm">Regenerate</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>)}
+
+        {/* NOTIFICATIONS TAB */}
+        {activeTab === 'notifications' && (<div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>Choose how you want to receive updates.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {[
+                { title: "Shipment Updates", desc: "Status changes and delivery alerts" },
+                { title: "Document Alerts", desc: "Required actions and pending sign-offs" },
+                { title: "Payment Reminders", desc: "Upcoming due dates and successful payments" },
+                { title: "Marketing", desc: "News, updates, and promotional offers" }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-medium text-gray-900">{item.title}</h4>
+                    <p className="text-sm text-gray-500">{item.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <Switch defaultChecked={i !== 3} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="h-4 w-4 text-gray-400" />
+                      <Switch defaultChecked={i < 2} />
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
+            </CardContent>
+            <CardFooter>
+              <Button>Save Preferences</Button>
+            </CardFooter>
+          </Card>
+        </div>)}
 
-            <div className="notification-schedule">
-              <h3>Quiet Hours</h3>
-              <p>We won't send notifications during these hours</p>
-
-              <div className="time-range">
-                <div className="time-input">
-                  <label>From:</label>
-                  <select className="time-select">
-                    <option value="20">8:00 PM</option>
-                    <option value="21">9:00 PM</option>
-                    <option value="22" selected>10:00 PM</option>
-                    <option value="23">11:00 PM</option>
-                  </select>
-                </div>
-                <div className="time-input">
-                  <label>To:</label>
-                  <select className="time-select">
-                    <option value="5">5:00 AM</option>
-                    <option value="6" selected>6:00 AM</option>
-                    <option value="7">7:00 AM</option>
-                    <option value="8">8:00 AM</option>
-                  </select>
-                </div>
+        {/* TEAM TAB */}
+        {activeTab === 'team' && (<div className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>Team Members</CardTitle>
+                <CardDescription>Manage access and roles for your organization.</CardDescription>
               </div>
-
-              <div className="timezone-note">
-                All times are in your local timezone: {userData.timezone}
-              </div>
-            </div>
-
-            <div className="save-preferences">
-              <button className="save-btn">Save Preferences</button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'team' && (
-          <div className="team-section">
-            <div className="team-header">
-              <h3>Team Members</h3>
-              <button className="invite-btn">+ Invite Team Member</button>
-            </div>
-
-            <div className="team-table-container">
-              <table className="team-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamMembers.map((member, index) => (
-                    <tr key={index}>
-                      <td>{member.name}</td>
-                      <td>{member.email}</td>
-                      <td>{member.role}</td>
-                      <td>
-                        <span className={`status-badge status-${member.status.toLowerCase()}`}>
-                          {member.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button className="action-btn edit-btn">Edit</button>
-                          {member.status === 'Invited' ? (
-                            <button className="action-btn resend-btn">Resend</button>
-                          ) : (
-                            <button className="action-btn remove-btn">Remove</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="role-permissions">
-              <h3>Role Permissions</h3>
-              <p>Configure what different roles can access</p>
-
-              <div className="role-cards">
-                <div className="role-card">
-                  <h4>Admin</h4>
-                  <p>Full access to all features and settings</p>
-                  <ul className="permission-list">
-                    <li>Manage team members</li>
-                    <li>Access all shipments</li>
-                    <li>View and edit billing</li>
-                    <li>Generate all reports</li>
-                    <li>Manage account settings</li>
-                  </ul>
-                  <button className="edit-role-btn">Edit Role</button>
-                </div>
-
-                <div className="role-card">
-                  <h4>User</h4>
-                  <p>Limited access to features</p>
-                  <ul className="permission-list">
-                    <li>View assigned shipments</li>
-                    <li>Upload documents</li>
-                    <li>Generate basic reports</li>
-                    <li>View own profile</li>
-                  </ul>
-                  <button className="edit-role-btn">Edit Role</button>
-                </div>
-
-                <div className="role-card add-role">
-                  <div className="add-role-content">
-                    <h4>Create Custom Role</h4>
-                    <p>Define a new role with custom permissions</p>
-                    <button className="add-role-btn">+ Create Role</button>
+              <Button size="sm"><Users className="h-4 w-4 mr-2" /> Invite Member</Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 mt-4">
+                {[
+                  { name: 'Alex Johnson', email: 'alex.johnson@example.com', role: 'Admin', status: 'Active' },
+                  { name: 'Sarah Williams', email: 'sarah.w@example.com', role: 'User', status: 'Active' },
+                  { name: 'Michael Chen', email: 'michael.c@example.com', role: 'Viewer', status: 'Invited' },
+                ].map((member, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <Avatar>
+                        <AvatarFallback>{member.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                        <p className="text-sm text-gray-500">{member.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Badge variant={member.role === 'Admin' ? 'default' : 'secondary'}>{member.role}</Badge>
+                      <Badge variant="outline" className={member.status === 'Active' ? 'text-green-600 border-green-200 bg-green-50' : 'text-amber-600 border-amber-200 bg-amber-50'}>
+                        {member.status}
+                      </Badge>
+                      <Button variant="ghost" size="sm">Manage</Button>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
-          </div>
-        )}
+            </CardContent>
+          </Card>
+        </div>)}
+
+
       </div>
     </div>
   );

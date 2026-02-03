@@ -275,7 +275,7 @@ const PaymentsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
         {/* Payments Header */}
         <MediaCardHeader
           title="Payment Management"
@@ -283,7 +283,7 @@ const PaymentsPage = () => {
           description="Manage invoices, process payments, and maintain financial records for your freight operations."
           backgroundImage="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
           overlayOpacity={0.6}
-          className="h-20 mb-8"
+          className="mb-8"
         />
 
         {/* Tab Navigation */}

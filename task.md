@@ -280,3 +280,26 @@
     - [x] Incorporate GeoRisk styling (Dark mode)
     - [x] Incorporate Dashboard content (Widgets, Table)
 - [x] Register Route in `App.tsx`
+
+# Phase 2: Pivot to Shipper Platform (Shipper-Focused MVP)
+> [!IMPORTANT]
+> **Pivot Objective**: Transition from a forwarder-facing tool to a shipper-facing digital freight platform. See [BEST_PRACTICES_SAAS_FREIGHT_2025_2026.md](./BEST_PRACTICES_SAAS_FREIGHT_2025_2026.md) and [HANDOFF.md](./HANDOFF.md).
+
+- [ ] **1. Public Quote & Booking Flow** (Shipper UX)
+    - [ ] Redesign `GuestQuoteWidget` for marketing site (Self-serve)
+    - [ ] Implement `createPublicQuote` UI with live rates
+    - [ ] Build Guest Booking Wizard (Sign-up + Payment Trigger)
+    - [ ] Enable Multi-modal Air Quotes (Schema + UI)
+- [ ] **2. Shipper Dashboard & Tracking**
+    - [ ] Create `ShipperDashboardPage` (Simplified view)
+    - [ ] Implement "New Shipment" primary action (Wizard)
+    - [ ] Integrate Document Upload & eSign (DocuSign) for Shippers
+    - [ ] Display Predictive Risk Scores (GeoRisk) on tracking
+- [ ] **3. Admin Console Upgrades**
+    - [ ] Implement Organization/Team Management UI
+    - [ ] Create Escalation Inbox for stuck quotes
+    - [ ] Build Compliance/Risk Audit Panel
+- [ ] **4. Onboarding & Support**
+    - [ ] Implement "First Value" dummy data flow
+    - [ ] Integrate Intercom/Chat Support Widget
+    - [ ] Add Guided Onboarding Tutorial (Modal/Tour)

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plane, Ship, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import 'mapbox-gl/dist/mapbox-gl.css';
+
 
 // --- GEOLOCATION MOCK ---
 const PORTS: Record<string, [number, number]> = {
@@ -161,70 +161,77 @@ export const VisualQuoteInput: React.FC<VisualQuoteInputProps> = ({ onSearch }) 
             </Map>
 
             {/* 2. Floating Glassmorphism Input Bar */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-4xl z-10">
-                <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-white/50 space-y-4">
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-primary-900">Where are you shipping?</h2>
-                        <p className="text-slate-500">Instant multi-modal quotes powered by AI.</p>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl z-10 px-4">
+                <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-white/40 space-y-4">
+                    <div className="text-center mb-1">
+                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Where are you shipping?</h2>
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Instant Multi-Modal Quotes</p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-4 items-center relative">
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch relative">
                         {/* Origin */}
-                        <div className="flex-1 relative w-full">
+                        <div className="flex-1 relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+                                <div className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse shadow-sm"></div>
                             </div>
                             <input
                                 type="text"
                                 list="ports"
-                                className="block w-full pl-8 pr-3 py-4 text-lg border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm"
-                                placeholder="Origin (e.g. London)"
+                                className="block w-full pl-7 pr-3 py-2.5 text-sm font-medium border border-gray-200 bg-white/50 focus:bg-white rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm placeholder:text-gray-400"
+                                placeholder="Origin city"
                                 value={origin}
                                 onChange={(e) => setOrigin(e.target.value)}
                             />
                         </div>
 
                         {/* Connector Arrow */}
-                        <div className="hidden md:flex text-slate-400">
-                            <ArrowRight className="w-6 h-6" />
+                        <div className="hidden sm:flex items-center text-slate-300">
+                            <ArrowRight className="w-4 h-4" />
                         </div>
 
                         {/* Destination */}
-                        <div className="flex-1 relative w-full">
+                        <div className="flex-1 relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <div className="h-2 w-2 bg-secondary rounded-full"></div>
+                                <div className="h-1.5 w-1.5 bg-secondary rounded-full shadow-sm"></div>
                             </div>
                             <input
                                 type="text"
                                 list="ports"
-                                className="block w-full pl-8 pr-3 py-4 text-lg border border-slate-200 bg-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm"
-                                placeholder="Destination (e.g. New York)"
+                                className="block w-full pl-7 pr-3 py-2.5 text-sm font-medium border border-gray-200 bg-white/50 focus:bg-white rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm placeholder:text-gray-400"
+                                placeholder="Destination city"
                                 value={destination}
                                 onChange={(e) => setDestination(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    {/* Action Button - Moved to separate full-width row */}
-                    <div className="pt-2 flex justify-center">
+                    {/* Action Button & Toggles */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                        {/* Quick Mode Selectors */}
+                        <div className="flex gap-4 text-xs font-medium text-slate-500 order-2 sm:order-1">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-50 cursor-pointer transition-colors">
+                                <Ship className="w-3.5 h-3.5 text-primary" />
+                                <span>Ocean</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-50 cursor-pointer transition-colors">
+                                <Plane className="w-3.5 h-3.5 text-secondary" />
+                                <span>Air</span>
+                            </div>
+                        </div>
+
+                        {/* Search Button */}
                         <Button
-                            size="lg"
-                            className="w-auto h-14 px-10 text-lg font-bold bg-primary hover:bg-primary-700 shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] min-w-[200px]"
+                            size="sm"
+                            className="w-full sm:w-auto h-9 px-6 text-sm font-semibold bg-primary hover:bg-primary-700 shadow-md shadow-primary/10 transition-all hover:scale-[1.01] order-1 sm:order-2"
                             onClick={handleSearch}
                             disabled={searching}
                         >
                             {searching ? (
-                                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Calculating...</>
+                                <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Check Rates</>
                             ) : (
-                                <><Search className="w-5 h-5 mr-2" /> Search Rates</>
+                                <><Search className="w-3.5 h-3.5 mr-2" /> Search Rates</>
                             )}
                         </Button>
-                    </div>
-
-                    {/* Quick Mode Selectors (Visual Only for now) */}
-                    <div className="flex justify-center gap-6 pt-4 text-sm text-slate-500 border-t border-slate-100 mt-4">
-                        <span className="flex items-center gap-2"><Ship className="w-4 h-4" /> Ocean Freight</span>
-                        <span className="flex items-center gap-2"><Plane className="w-4 h-4" /> Air Freight</span>
                     </div>
 
                 </div>

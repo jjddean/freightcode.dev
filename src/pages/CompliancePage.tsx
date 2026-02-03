@@ -10,9 +10,6 @@ import { api } from "../../convex/_generated/api";
 import { Link } from 'react-router-dom';
 import { ComplianceKycModal } from "@/components/compliance/ComplianceKycModal";
 import { toast } from 'sonner';
-import { useFeature } from '@/hooks/useFeature';
-
-import { Lock } from "lucide-react";
 
 const CompliancePage = () => {
   // Live documents for compliance monitoring
@@ -45,7 +42,7 @@ const CompliancePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-8">
         <MediaCardHeader
           title="Compliance"
           subtitle="Regulatory Center"
@@ -55,40 +52,66 @@ const CompliancePage = () => {
           className="mb-8"
         />
         {/* Status Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl">
-                ⏳
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                  <span className="text-sm">⏳</span>
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-900">Pending Reviews</h3>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-500">Pending Reviews</h3>
+                <p className="text-2xl font-semibold text-gray-900">{pendingDocs.length}</p>
+                <p className="text-xs text-gray-400">Actions required</p>
+              </div>
             </div>
-            <p className="text-3xl font-bold pl-1">{pendingDocs.length}</p>
-            <p className="text-sm text-gray-500 mt-1 pl-1">Actions required to proceed</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-xl">
-                ✅
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                  <span className="text-sm">✅</span>
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-900">Verified Docs</h3>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-500">Verified Docs</h3>
+                <p className="text-2xl font-semibold text-gray-900">{signedDocs.length}</p>
+                <p className="text-xs text-gray-400">Cleared & validated</p>
+              </div>
             </div>
-            <p className="text-3xl font-bold pl-1">{signedDocs.length}</p>
-            <p className="text-sm text-gray-500 mt-1 pl-1">Cleared and validated</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${isVerified ? 'bg-green-50' : 'bg-indigo-50'}`}>
-                {isVerified ? '✅' : '🛡️'}
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center translate-y-1 ${isVerified ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                  <span className="text-sm">{isVerified ? '✅' : '🛡️'}</span>
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-900">KYC Status</h3>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-500">KYC Status</h3>
+                <p className={`text-xl font-semibold ${isVerified ? 'text-green-600' : 'text-indigo-600'}`}>
+                  {isVerified ? 'VERIFIED' : currentStatus === 'submitted' ? 'UNDER REVIEW' : 'ACTION REQUIRED'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {isVerified ? 'Valid for 365 days' : 'Verification needed'}
+                </p>
+              </div>
             </div>
-            <p className={`text-xl font-bold pl-1 ${isVerified ? 'text-green-600' : 'text-indigo-600'}`}>
-              {isVerified ? 'VERIFIED' : currentStatus === 'submitted' ? 'UNDER REVIEW' : 'ACTION REQUIRED'}
-            </p>
-            <p className="text-sm text-gray-500 mt-1 pl-1">
-              {isVerified ? 'Valid for 365 days' : 'Identity verification needed'}
-            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+                  <span className="text-sm">⚠️</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-500">Expiring Soon</h3>
+                <p className="text-2xl font-semibold text-gray-900">0</p>
+                <p className="text-xs text-gray-400">Renewals due &lt; 30d</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -266,38 +289,6 @@ const CompliancePage = () => {
 };
 
 function AiRiskAnalysisSection() {
-  const hasAccess = useFeature("COMPLIANCE_AI");
-
-  if (!hasAccess) {
-    return (
-      <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Lock className="w-6 h-6 text-gray-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">AI Risk Analysis</h3>
-            <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
-              Upgrade to Pro to automatically flag compliance risks, sanction checks, and HS code errors.
-            </p>
-            <Button variant="default" asChild>
-              <Link to="/payments?tab=subscription">Upgrade to Pro</Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* Blurred background content */}
-        <div className="opacity-40 pointer-events-none filter blur-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">AI Compliance Risk Report</h2>
-            <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">High Risk Detecte</span>
-          </div>
-          <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Card className="bg-purple-50 border-purple-200">
       <CardHeader>
