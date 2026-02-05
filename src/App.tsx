@@ -187,6 +187,7 @@ export default function App() {
               <Route path="/access" element={<WaitlistPage />} />
               <Route path="/test-dashboard" element={<TestDashboardPage />} />
               <Route path="/georisk-demo" element={<GeoRiskDemoPage />} />
+              <Route path="/geo" element={<GeoRiskDemoPage />} />
 
               <Route path="/shared/:token" element={<SharedDocumentPage />} />
               <Route path="/api/docusign/callback" element={<DocusignCallbackPage />} />

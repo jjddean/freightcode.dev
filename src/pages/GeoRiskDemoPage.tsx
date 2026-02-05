@@ -1,5 +1,9 @@
 import React from 'react';
 import { GeoRiskNavigator } from '@/components/ai/GeoRiskNavigator';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 // Demo scenarios with different risk levels
 const DEMO_SCENARIOS = {
@@ -152,6 +156,34 @@ const IS_DEV_MODE = import.meta.env.DEV;
 
 export default function GeoRiskDemoPage() {
     const [selectedScenario, setSelectedScenario] = React.useState<keyof typeof DEMO_SCENARIOS>('mediumRisk');
+    const generateFlow = useMutation(api.simulation.generateFullFlow);
+    const moveShipments = useMutation(api.simulation.moveShipments);
+    const [simulating, setSimulating] = React.useState(false);
+    const [moving, setMoving] = React.useState(false);
+
+    const runSimulation = async () => {
+        setSimulating(true);
+        try {
+            const result = await generateFlow({});
+            toast.success("Simulation Complete", { description: result.message });
+        } catch (e: any) {
+            toast.error("Simulation Failed", { description: e.message });
+        } finally {
+            setSimulating(false);
+        }
+    };
+
+    const runMovement = async () => {
+        setMoving(true);
+        try {
+            const result = await moveShipments({});
+            toast.success("Movement Complete", { description: result });
+        } catch (e: any) {
+            toast.error("Movement Failed", { description: e.message });
+        } finally {
+            setMoving(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 p-8">
@@ -225,13 +257,30 @@ export default function GeoRiskDemoPage() {
                             This panel is only visible in development. It will not appear in production builds.
                         </p>
                         <div className="bg-white rounded p-3">
-                            <p className="text-xs text-amber-600 font-medium mb-1">Backend Status:</p>
-                            <ul className="text-xs text-amber-700 space-y-1">
-                                <li>✅ Convex actions deployed</li>
-                                <li>✅ OpenSanctions integration ready</li>
-                                <li>✅ OpenWeather integration ready</li>
-                                <li>⏸️ Real API calls paused (using mock data)</li>
-                            </ul>
+                            <p className="text-xs text-amber-600 font-medium mb-2">Simulation Controls:</p>
+                            <div className="space-y-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full justify-start h-8 text-xs bg-white border-amber-200 hover:bg-amber-50 text-amber-900"
+                                    onClick={() => runSimulation()}
+                                    disabled={simulating}
+                                >
+                                    {simulating ? 'Running...' : '▶ Run Data Generator (Quote + Booking)'}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full justify-start h-8 text-xs bg-white border-amber-200 hover:bg-amber-50 text-amber-900"
+                                    onClick={() => runMovement()}
+                                    disabled={moving}
+                                >
+                                    {moving ? 'Moving...' : '🚢 Jitter Shipments (5-10km)'}
+                                </Button>
+                            </div>
+                            <div className="mt-3 text-[10px] text-amber-700">
+                                Checks active org: {JSON.stringify(api.simulation.generateFullFlow ? 'Connected' : 'Missing')}
+                            </div>
                         </div>
                     </div>
                 )}

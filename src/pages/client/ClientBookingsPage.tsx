@@ -92,22 +92,32 @@ const ClientBookingsPage = () => {
                             <div className="p-4 space-y-6">
                                 <section className="space-y-3">
                                     <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Booking Details</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
                                         <div>
-                                            <span className="block text-gray-500 text-xs">Status</span>
-                                            {row.status}
+                                            <span className="block text-gray-500 text-xs mb-1">Status</span>
+                                            <span className="capitalize">{row.status}</span>
                                         </div>
                                         <div>
-                                            <span className="block text-gray-500 text-xs">Quote ID</span>
-                                            {row.quoteId}
+                                            <span className="block text-gray-500 text-xs mb-1">Quote ID</span>
+                                            <span className="font-mono text-[10px] break-all block text-gray-600">{row.quoteId}</span>
                                         </div>
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Carrier</span>
-                                            {row.carrierQuoteId || '-'}
-                                        </div>
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Created</span>
-                                            {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '-'}
+                                        <div className="col-span-2 space-y-4">
+                                            <div className="border-t pt-4">
+                                                <span className="block text-gray-500 text-xs mb-1">Carrier & Service</span>
+                                                <div className="flex items-center gap-2">
+                                                    {row.carrierLogo && (
+                                                        <img src={row.carrierLogo} alt="" className="w-6 h-6 object-contain" />
+                                                    )}
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{row.carrierName || 'Standard Freight'}</div>
+                                                        <div className="text-[10px] text-gray-500">{row.serviceType || 'Standard Service'}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="block text-gray-500 text-xs mb-1">Created Date</span>
+                                                <div className="text-gray-900">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '-'}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>
@@ -117,7 +127,9 @@ const ClientBookingsPage = () => {
                                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 flex items-center justify-between gap-4">
                                         <div className="shrink-0">
                                             <div className="font-medium text-gray-900">Total Cost</div>
-                                            <div className="text-xs text-gray-500">Ready for payment</div>
+                                            <div className="text-xs text-gray-500">
+                                                {row.status === 'confirmed' ? 'Paid' : 'Ready for payment'}
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-3 justify-end min-w-0">
                                             <div className="font-bold text-gray-900 text-right leading-tight break-words">
@@ -126,35 +138,39 @@ const ClientBookingsPage = () => {
                                                     : <span className="text-sm">Calculated<br />at Checkout</span>
                                                 }
                                             </div>
-                                            <Button
-                                                onClick={() => handlePay(row.bookingId)}
-                                                size="sm"
-                                                className="bg-primary hover:bg-primary/90 text-white shadow-sm h-9 px-4 shrink-0"
-                                            >
-                                                Secure Booking
-                                            </Button>
+                                            {row.status !== 'confirmed' && (
+                                                <Button
+                                                    onClick={() => handlePay(row.bookingId)}
+                                                    size="sm"
+                                                    className="bg-primary hover:bg-primary/90 text-white shadow-sm h-9 px-4 shrink-0"
+                                                >
+                                                    Secure Booking
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </section>
 
                                 <section className="space-y-3">
-                                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Customer</h3>
+                                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Customer Details</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Name</span>
-                                            {row.customerDetails?.name || '-'}
+                                        <div className="col-span-1">
+                                            <span className="block text-gray-500 text-xs mb-1">Name</span>
+                                            <div className="font-medium truncate">{row.customerDetails?.name || '-'}</div>
                                         </div>
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Company</span>
-                                            {row.customerDetails?.company || '-'}
+                                        <div className="col-span-1">
+                                            <span className="block text-gray-500 text-xs mb-1">Company</span>
+                                            <div className="truncate">{row.customerDetails?.company || '-'}</div>
                                         </div>
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Email</span>
-                                            {row.customerDetails?.email || '-'}
-                                        </div>
-                                        <div>
-                                            <span className="block text-gray-500 text-xs">Phone</span>
-                                            {row.customerDetails?.phone || '-'}
+                                        <div className="col-span-2 space-y-4 pt-2 border-t mt-2">
+                                            <div>
+                                                <span className="block text-gray-500 text-xs mb-1">Email Address</span>
+                                                <div className="break-all font-medium text-primary">{row.customerDetails?.email || '-'}</div>
+                                            </div>
+                                            <div>
+                                                <span className="block text-gray-500 text-xs mb-1">Phone Number</span>
+                                                <div className="text-gray-900">{row.customerDetails?.phone || '-'}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>

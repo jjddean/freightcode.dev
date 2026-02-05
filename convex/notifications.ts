@@ -3,8 +3,8 @@ import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return [];
 
@@ -14,7 +14,7 @@ export const list = query({
             .query("notifications")
             .withIndex("byUserId", (q) => q.eq("userId", userId))
             .order("desc")
-            .take(50);
+            .take(args.limit || 50);
     },
 });
 
@@ -54,6 +54,23 @@ export const markRead = mutation({
     },
 });
 
+export const getUnreadCount = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return 0;
+        const userId = identity.subject;
+
+        const unread = await ctx.db
+            .query("notifications")
+            .withIndex("byUserId", (q) => q.eq("userId", userId))
+            .filter(q => q.eq(q.field("read"), false))
+            .collect();
+
+        return unread.length;
+    }
+});
+
 export const markAllRead = mutation({
     args: {},
     handler: async (ctx) => {
@@ -61,16 +78,20 @@ export const markAllRead = mutation({
         if (!identity) return;
         const userId = identity.subject;
 
+        // Fetch unread in batches if possible, but collect is usually fine up to 10k
         const notifications = await ctx.db
             .query("notifications")
             .withIndex("byUserId", (q) => q.eq("userId", userId))
             .filter(q => q.eq(q.field("read"), false))
             .collect();
 
-        for (const n of notifications) {
-            await ctx.db.patch(n._id, { read: true });
+        // Audit log for mass update (optional but good for tracking)
+        console.log(`Marking ${notifications.length} notifications as read for ${userId}`);
+
+        for (const notification of notifications) {
+            await ctx.db.patch(notification._id, { read: true });
         }
-    },
+    }
 });
 
 // Helper for other mutations to call internally

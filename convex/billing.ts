@@ -55,18 +55,24 @@ export const createCheckoutSession = action({
 
         // For Invoice
         if (args.type === "invoice" && args.invoiceId) {
-            // In a real app, query the invoice details from DB here
-            // For now, we mock a standard freight charge
-            const session = await stripe.checkout.sessions.create({
+            // Extract bookingId from INV-xxx
+            const bookingId = args.invoiceId.startsWith('INV-') ? args.invoiceId.substring(4) : args.invoiceId;
+
+            // Fetch booking details for metadata
+            const booking: any = await ctx.runQuery(api.bookings.getBooking, { bookingId });
+            const quoteData = booking?.quoteId ? await ctx.runQuery(api.quotes.getQuoteByQuoteId, { quoteId: booking.quoteId }) : null;
+            const quote = quoteData as any;
+
+            const session = await (stripe.checkout.sessions.create as any)({
                 line_items: [
                     {
                         price_data: {
-                            currency: 'usd',
+                            currency: 'usd', // Default to USD for mock
                             product_data: {
                                 name: `Freight Invoice #${args.invoiceId}`,
-                                description: 'Logistics Services',
+                                description: quote ? `Freight: ${quote.origin} -> ${quote.destination}` : 'Logistics Services',
                             },
-                            unit_amount: 245000, // $2450.00 mock
+                            unit_amount: booking?.price?.amount ? Math.round(booking.price.amount * 100) : 245000,
                         },
                         quantity: 1,
                     },
@@ -77,7 +83,10 @@ export const createCheckoutSession = action({
                 metadata: {
                     userId: user.subject,
                     type: 'invoice',
-                    invoiceId: args.invoiceId
+                    invoiceId: args.invoiceId as string,
+                    route: (quote ? `${quote.origin} -> ${quote.destination}` : 'Standard Route') as string,
+                    origin: (quote?.origin || 'Unknown') as string,
+                    destination: (quote?.destination || 'Unknown') as string,
                 }
             });
 

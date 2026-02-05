@@ -21,6 +21,7 @@ import {
     DrawerTrigger
 } from '@/components/ui/drawer';
 import { toast } from 'sonner';
+import PriceBreakdownTable from '@/components/shipping/PriceBreakdownTable';
 
 // Internal helper for the seed button - Moved to top to avoid hoisting issues
 // Internal helper for the seed button - Moved to top to avoid hoisting issues
@@ -86,7 +87,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
-const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedCarrier: any }) => {
+const BookingDialog = ({ quote, selectedCarrier }: { quote: any, selectedCarrier: any }) => {
     const createBooking = useMutation(api.bookings.createBooking);
     const upsertShipment = useMutation(api.shipments.upsertShipment);
     const [loading, setLoading] = useState(false);
@@ -97,7 +98,7 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
     const [addCustoms, setAddCustoms] = useState(false);
     const [addInsurance, setAddInsurance] = useState(false);
 
-    const basePrice = selectedCarrier.price?.amount || 0;
+    const basePrice = selectedCarrier.price?.amount || selectedCarrier.cost || selectedCarrier.amount || 0;
     const customsFee = 150;
     const insuranceFee = Math.round(basePrice * 0.015) + 50; // 1.5% + $50 base
 
@@ -116,6 +117,10 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
             const notes = [];
             if (addCustoms) notes.push("Service: Customs Brokerage");
             if (addInsurance) notes.push("Service: Cargo Insurance");
+
+            const additionalFees = [];
+            if (addCustoms) additionalFees.push({ description: "Customs Brokerage", amount: customsFee });
+            if (addInsurance) additionalFees.push({ description: "Cargo Insurance", amount: insuranceFee });
 
             const bookingRes = await createBooking({
                 quoteId: quote.quoteId,
@@ -141,6 +146,7 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                     contactPhone: contact.phone || 'N/A',
                 },
                 specialInstructions: notes.join(", ") || "Standard handling",
+                additionalFees: additionalFees.length > 0 ? additionalFees : undefined,
             });
 
             // Optimistic ID if backend doesn't return one immediately (for upsertShipment)
@@ -167,8 +173,8 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                         destination: quote.destination || '',
                         value: quote.value || '',
                     },
-                    riskLevel: (addInsurance ? 'low' : 'medium') as any, // Cast to expected union type
-                    customs: addCustoms ? { filingStatus: 'pending', brokerName: 'Freightcode Customs' } : undefined,
+                    // riskLevel: (addInsurance ? 'low' : 'medium') as any, 
+                    // customs: addCustoms ? { filingStatus: 'pending', brokerName: 'Freightcode Customs' } : undefined,
                     events: [
                         {
                             timestamp: new Date().toISOString(),
@@ -204,8 +210,8 @@ const CarrierSelectButton = ({ quote, selectedCarrier }: { quote: any, selectedC
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+
                     <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-500">Base Freight ({selectedCarrier.carrierName})</span>
                         <span className="font-medium">{formatCurrency(basePrice, selectedCarrier.price?.currency)}</span>
                     </div>
 
@@ -438,24 +444,46 @@ const ClientQuotesPage = () => {
                                     <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Carrier Rates</h3>
                                     <div className="space-y-3">
                                         {(row.quotes || []).map((q: any, idx: number) => (
-                                            <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex justify-between items-center group hover:bg-white hover:shadow-sm transition-all">
-                                                <div className="flex-1">
-                                                    <div className="font-medium text-gray-900">{q.carrierName}</div>
-                                                    <div className="text-xs text-gray-500">{q.serviceType} • {q.transitTime}</div>
-                                                </div>
-                                                <div className="text-right mr-4">
-                                                    <div className="font-bold text-gray-900">
-                                                        {formatCurrency(q.price?.amount || 0, q.price?.currency)}
+                                            <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-100 group hover:bg-white hover:shadow-sm transition-all">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-gray-900">{q.carrierName}</div>
+                                                        <div className="text-xs text-gray-500">{q.serviceType} • {q.transitTime}</div>
                                                     </div>
+                                                    <div className="text-right mr-4">
+                                                        <div className="font-bold text-gray-900">
+                                                            {formatCurrency(q.price?.amount || q.cost || q.amount || 0, q.price?.currency || q.currency)}
+                                                        </div>
+                                                    </div>
+                                                    <BookingDialog
+                                                        quote={row}
+                                                        selectedCarrier={q}
+                                                    />
                                                 </div>
-                                                <CarrierSelectButton quote={row} selectedCarrier={q} />
+
+                                                {q.price?.lineItems && (
+                                                    <div className="mt-4 pt-4 border-t">
+                                                        <details className="group">
+                                                            <summary className="text-xs font-semibold text-blue-600 cursor-pointer hover:underline flex items-center">
+                                                                <span>View Detailed Price Breakdown</span>
+                                                                <span className="ml-2 transition-transform group-open:rotate-180">▼</span>
+                                                            </summary>
+                                                            <div className="mt-2 text-primary">
+                                                                <PriceBreakdownTable
+                                                                    lineItems={q.price.lineItems}
+                                                                    currency={q.price.currency}
+                                                                />
+                                                            </div>
+                                                        </details>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </section>
                             </div>
 
-                            <DrawerFooter className="border-t">
+                            <DrawerFooter className="border-t mt-auto">
                                 <DrawerClose asChild>
                                     <Button variant="outline" className="w-full">Close</Button>
                                 </DrawerClose>

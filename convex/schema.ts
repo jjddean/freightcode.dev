@@ -6,6 +6,18 @@ import { v } from "convex/values";
 
 import { paymentAttemptSchemaValidator } from "./paymentAttemptTypes";
 
+// Reusable line item schema for detailed price breakdown
+const lineItemSchema = v.object({
+  category: v.string(), // Origin, Main Transport, Destination, etc.
+  description: v.string(),
+  unit: v.string(), // wm, shipment, unit
+  price: v.number(),
+  currency: v.string(),
+  minimum: v.optional(v.number()),
+  total: v.number(),
+  vat: v.optional(v.string()),
+});
+
 export default defineSchema({
   users: defineTable({
     name: v.string(),
@@ -13,7 +25,7 @@ export default defineSchema({
     // this the Clerk ID, stored in the subject JWT field
     externalId: v.string(),
     // Multi-tenancy: Clerk Organization ID
-    orgId: v.optional(v.string()),
+    orgId: v.optional(v.union(v.string(), v.null())),
     role: v.optional(v.string()), // "client", "admin", "platform:superadmin"
     subscriptionTier: v.optional(v.string()), // "free", "pro"
     subscriptionStatus: v.optional(v.string()), // "active", "canceled", "past_due"
@@ -81,12 +93,13 @@ export default defineSchema({
           securityFee: v.number(),
           documentation: v.number(),
         }),
+        lineItems: v.optional(v.array(lineItemSchema)),
       }),
       validUntil: v.string(),
     })),
     userId: v.optional(v.id("users")),
     guestId: v.optional(v.string()), // DFF: For public quoting
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
     createdAt: v.number(),
   }).index("byUserId", ["userId"])
     .index("byQuoteId", ["quoteId"])
@@ -103,7 +116,7 @@ export default defineSchema({
     currency: v.string(),
     effectiveDate: v.string(),
     expirationDate: v.string(),
-    orgId: v.optional(v.string()), // If contract is specific to an Org (optional)
+    orgId: v.optional(v.union(v.string(), v.null())), // If contract is specific to an Org (optional)
   }).index("byRoute", ["origin", "destination"])
     .index("byCarrier", ["carrier"]),
 
@@ -114,7 +127,7 @@ export default defineSchema({
     apiSecret: v.optional(v.string()),
     webhookSecret: v.optional(v.string()),
     status: v.string(), // "active", "inactive"
-    orgId: v.optional(v.string()), // If org brings their own keys
+    orgId: v.optional(v.union(v.string(), v.null())), // If org brings their own keys
   }).index("byProvider", ["provider"])
     .index("byOrgId", ["orgId"]),
 
@@ -156,7 +169,7 @@ export default defineSchema({
     })),
 
     userId: v.optional(v.id("users")),
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
     lastUpdated: v.number(),
     createdAt: v.number(),
   }).index("byUserId", ["userId"])
@@ -178,6 +191,9 @@ export default defineSchema({
     bookingId: v.string(),
     quoteId: v.string(),
     carrierQuoteId: v.string(),
+    carrierName: v.optional(v.string()),
+    serviceType: v.optional(v.string()),
+    carrierLogo: v.optional(v.string()),
     status: v.string(), // "pending", "pending_approval", "approved", "confirmed", "in_transit", "delivered", "cancelled", "rejected"
     customerDetails: v.object({
       name: v.string(),
@@ -212,6 +228,7 @@ export default defineSchema({
         securityFee: v.number(),
         documentation: v.number(),
       })),
+      lineItems: v.optional(v.array(lineItemSchema)),
     })),
     // Approval workflow fields
     requiresApproval: v.optional(v.boolean()), // True if needs platform approval
@@ -220,7 +237,7 @@ export default defineSchema({
     approvedAt: v.optional(v.number()), // Timestamp of approval
     rejectionReason: v.optional(v.string()), // Reason if rejected
     userId: v.optional(v.id("users")),
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("byUserId", ["userId"])
@@ -283,7 +300,7 @@ export default defineSchema({
       }))),
     })),
     userId: v.optional(v.id("users")),
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
     uploadedBy: v.optional(v.string()), // "client" | "system" - for hybrid model
     shareToken: v.optional(v.string()), // For public sharing
     createdAt: v.number(),
@@ -316,6 +333,7 @@ export default defineSchema({
     currency: v.string(),
     status: v.string(), // "pending", "paid", "overdue", "void"
     dueDate: v.string(),
+    route: v.optional(v.string()),
     items: v.array(v.object({
       description: v.string(),
       quantity: v.number(),
@@ -324,7 +342,7 @@ export default defineSchema({
     })),
     createdAt: v.number(),
     updatedAt: v.number(),
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
   }).index("byBookingId", ["bookingId"])
     .index("byCustomerId", ["customerId"])
     .index("byInvoiceNumber", ["invoiceNumber"])
@@ -337,7 +355,7 @@ export default defineSchema({
     entityId: v.optional(v.string()), // ID of the affected entity
     userId: v.optional(v.string()), // Clerk user ID who performed the action
     userEmail: v.optional(v.string()), // Email of the user
-    orgId: v.optional(v.string()), // Organization context
+    orgId: v.optional(v.union(v.string(), v.null())), // Organization context
     details: v.optional(v.any()), // Additional metadata (JSON)
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
@@ -362,7 +380,7 @@ export default defineSchema({
 
   kycVerifications: defineTable({
     userId: v.string(), // Clerk User ID
-    orgId: v.optional(v.string()),
+    orgId: v.optional(v.union(v.string(), v.null())),
     status: v.string(), // "draft", "submitted", "verified", "rejected"
     step: v.number(), // Current progress step (1, 2, 3...)
 
@@ -419,7 +437,7 @@ export default defineSchema({
     company: v.optional(v.string()),
     phone: v.optional(v.string()),
     userId: v.optional(v.string()), // Clerk User ID (Owner)
-    orgId: v.optional(v.string()), // Multi-tenancy
+    orgId: v.optional(v.union(v.string(), v.null())), // Multi-tenancy
     createdAt: v.number(),
   }).index("byUserId", ["userId"])
     .index("byOrgId", ["orgId"]),

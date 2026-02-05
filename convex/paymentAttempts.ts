@@ -69,3 +69,60 @@ export const listMyPayments = query({
     return payments.sort((a, b) => b.created_at - a.created_at);
   }
 });
+
+import { mutation } from "./_generated/server";
+
+// Backfill mutation to add route metadata to existing payment attempts
+export const backfillPaymentsWithRoute = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allPayments = await ctx.db.query("paymentAttempts").collect();
+    let updated = 0;
+
+    for (const payment of allPayments) {
+      // Skip if already has metadata with route
+      if (payment.metadata?.route) continue;
+
+      // Try to find associated booking to get origin/destination
+      // payment_id format: "PAY-BK-1770268078591-js1dg9vxd"
+      // bookingId format:  "BK-1770268078591-js1dg9vxd"
+      let bookingId = null;
+
+      if (payment.payment_id?.startsWith('PAY-')) {
+        bookingId = payment.payment_id.replace('PAY-', '');
+      } else if (payment.invoice_id?.startsWith('INV-')) {
+        bookingId = payment.invoice_id.replace('INV-', '');
+      }
+
+      if (bookingId) {
+        const booking = await ctx.db
+          .query("bookings")
+          .withIndex("byBookingId", (q) => q.eq("bookingId", bookingId))
+          .first();
+
+        if (booking) {
+          // Get the quote to find origin/destination
+          const quote = booking.quoteId ?
+            await ctx.db.query("quotes")
+              .withIndex("byQuoteId", (q) => q.eq("quoteId", booking.quoteId))
+              .first() : null;
+
+          if (quote) {
+            await ctx.db.patch(payment._id, {
+              metadata: {
+                route: `${quote.origin} → ${quote.destination}`,
+                lineItems: booking.price?.lineItems || [],
+                bookingId: bookingId,
+                origin: quote.origin,
+                destination: quote.destination
+              }
+            });
+            updated++;
+          }
+        }
+      }
+    }
+
+    return { total: allPayments.length, updated };
+  },
+});

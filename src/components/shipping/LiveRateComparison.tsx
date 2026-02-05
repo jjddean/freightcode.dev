@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useOrganization } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,9 @@ const LiveRateComparison: React.FC<LiveRateComparisonProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedRate, setSelectedRate] = useState<CarrierRate | null>(null);
 
+  // Convex action for server-side SeaRates API call (avoids CORS)
+  const fetchSeaRates = useAction(api.searates.getSeaRatesQuotes);
+
   useEffect(() => {
     if (rateRequest.origin.city && rateRequest.destination.city) {
       fetchRates();
@@ -43,56 +46,62 @@ const LiveRateComparison: React.FC<LiveRateComparisonProps> = ({
     setError(null);
 
     try {
-      console.log('Fetching live rates via Freightos...', rateRequest);
+      console.log('[LiveRates] Fetching rates for:', rateRequest.origin.city, '->', rateRequest.destination.city);
 
-      // Call Convex Mutation
-      const result = await requestQuote({
-        request: {
-          origin: rateRequest.origin.city, // e.g. "Shanghai, CN"
-          destination: rateRequest.destination.city, // e.g. "London, UK"
-          serviceType: 'ocean', // Defaulting for simple search
-          cargoType: 'general',
-          weight: String(rateRequest.parcel.weight),
-          dimensions: {
-            length: String(rateRequest.parcel.length),
-            width: String(rateRequest.parcel.width),
-            height: String(rateRequest.parcel.height)
+      // 1. Get mock/parcel rates from browser (FedEx, UPS, USPS mock)
+      const mockRates = await getAllCarrierRates(rateRequest);
+      console.log('[LiveRates] Got', mockRates.length, 'mock rates');
+
+      // 2. Get SeaRates from Convex (server-side, no CORS)
+      let seaRatesData: CarrierRate[] = [];
+      try {
+        const weight = rateRequest.parcel.weight || 100;
+        const shippingType = weight > 15000 ? 'FCL' : 'LCL';
+
+        const seaRatesResult = await fetchSeaRates({
+          origin: rateRequest.origin.city || '',
+          destination: rateRequest.destination.city || '',
+          shippingType,
+          weight,
+        });
+
+        // Convert SeaRates response to CarrierRate format
+        seaRatesData = (seaRatesResult || []).map((rate: any) => ({
+          carrierId: rate.carrierId || `searates-${Date.now()}`,
+          carrier: rate.carrierName || 'SeaRates Carrier',
+          service: rate.serviceType || 'Ocean Freight',
+          cost: rate.price?.amount || rate.totalPrice || 0,
+          amount: rate.price?.amount || rate.totalPrice || 0,
+          currency: rate.price?.currency || rate.currency || 'USD',
+          transit_time: rate.transitTime || '20 days',
+          transitTime: rate.transitTime || '20 days',
+          provider: 'searates' as const,
+          price: {
+            amount: rate.price?.amount || rate.totalPrice || 0,
+            currency: rate.price?.currency || rate.currency || 'USD',
+            lineItems: rate.price?.lineItems || [],
           },
-          value: "1000",
-          incoterms: "FOB",
-          urgency: "standard",
-          additionalServices: [],
-          contactInfo: { name: "Guest", email: "guest@example.com", phone: "", company: "" }
-        },
-        orgId: organization?.id ?? undefined
-      });
+        }));
+        console.log('[LiveRates] Got', seaRatesData.length, 'SeaRates quotes');
+      } catch (seaErr) {
+        console.warn('[LiveRates] SeaRates fetch failed:', seaErr);
+      }
 
-      // Map the backend quotes to the frontend CarrierRate type
-      const carrierRates: CarrierRate[] = result.quotes.map((q: any) => ({
-        carrier: q.carrierName,
-        service: q.serviceType,
-        cost: q.price.amount,
-        currency: q.price.currency,
-        transit_time: q.transitTime,
-        provider: 'freightos' as any,
-        co2_emission: q.serviceType.includes("Air") ? 450 : 85
-      }));
+      // 3. Combine all rates
+      const allRates = [...seaRatesData, ...mockRates].sort((a, b) => a.cost - b.cost);
+      console.log('[LiveRates] Total rates:', allRates.length);
 
-      setRates(carrierRates);
-      onRatesFetched?.(carrierRates);
+      setRates(allRates);
+      onRatesFetched?.(allRates);
 
     } catch (err: any) {
       console.error('Error fetching rates:', err);
-      // Fallback: Show readable error to user
-      let msg = 'Failed to fetch shipping rates.';
-      if (err.message.includes("Could not find UN/LOCODE")) {
-        msg = "Route not supported. Please select major ports (e.g. Shanghai -> London).";
-      }
-      setError(msg);
+      setError('Failed to fetch shipping rates.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleRateSelect = (rate: CarrierRate) => {
     setSelectedRate(rate);
@@ -117,6 +126,7 @@ const LiveRateComparison: React.FC<LiveRateComparisonProps> = ({
       'easyship': { color: 'bg-purple-100 text-purple-800', label: 'EasyShip' },
       'fedex': { color: 'bg-orange-100 text-orange-800', label: 'FedEx Direct' },
       'ups': { color: 'bg-yellow-100 text-yellow-800', label: 'UPS Direct' },
+      'searates': { color: 'bg-cyan-100 text-cyan-800', label: 'SeaRates' },
     };
 
     const badge = badges[provider] || { color: 'bg-gray-100 text-gray-800', label: 'Direct' };
@@ -254,6 +264,7 @@ const LiveRateComparison: React.FC<LiveRateComparisonProps> = ({
                       </div>
                     </div>
                   )}
+
                 </div>
               );
             })}

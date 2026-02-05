@@ -42,7 +42,7 @@ export const createDocument = mutation({
       terms: v.optional(v.string()),
     }),
     status: v.optional(v.string()),
-    orgId: v.optional(v.string()), // New: Implicitly passed by frontend context
+    orgId: v.optional(v.union(v.string(), v.null())), // New: Implicitly passed by frontend context
   },
   handler: async (ctx, args) => {
     // Link to current user. Ensure a user record exists; if not, create it.
@@ -291,7 +291,7 @@ export const listDocuments = query({
       docs = await ctx.db
         .query("documents")
         .withIndex("byUserId", (q) => q.eq("userId", user._id))
-        .filter((q) => q.eq(q.field("orgId"), undefined)) // Explicitly ensure no Org linked
+        .filter((q) => q.or(q.eq(q.field("orgId"), null), q.eq(q.field("orgId"), undefined))) // Ensure no Org linked
         .order("desc")
         .collect();
     }

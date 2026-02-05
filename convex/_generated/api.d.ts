@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as admin_seed from "../admin_seed.js";
 import type * as ai from "../ai.js";
 import type * as auditLogs from "../auditLogs.js";
 import type * as authHelpers from "../authHelpers.js";
@@ -18,8 +19,10 @@ import type * as bookings from "../bookings.js";
 import type * as clerk from "../clerk.js";
 import type * as compliance from "../compliance.js";
 import type * as contacts from "../contacts.js";
+import type * as debug from "../debug.js";
 import type * as debug_email from "../debug_email.js";
 import type * as developer from "../developer.js";
+import type * as diagnostic from "../diagnostic.js";
 import type * as documents from "../documents.js";
 import type * as docusign from "../docusign.js";
 import type * as email from "../email.js";
@@ -28,6 +31,7 @@ import type * as freightos from "../freightos.js";
 import type * as geo from "../geo.js";
 import type * as georisk from "../georisk.js";
 import type * as http from "../http.js";
+import type * as invoices from "../invoices.js";
 import type * as locations from "../locations.js";
 import type * as marketing from "../marketing.js";
 import type * as notifications from "../notifications.js";
@@ -39,7 +43,9 @@ import type * as paymentsData from "../paymentsData.js";
 import type * as pdfGenerator from "../pdfGenerator.js";
 import type * as pricing from "../pricing.js";
 import type * as quotes from "../quotes.js";
+import type * as repair from "../repair.js";
 import type * as reporting from "../reporting.js";
+import type * as searates from "../searates.js";
 import type * as search from "../search.js";
 import type * as shipments from "../shipments.js";
 import type * as simulation from "../simulation.js";
@@ -58,6 +64,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  admin_seed: typeof admin_seed;
   ai: typeof ai;
   auditLogs: typeof auditLogs;
   authHelpers: typeof authHelpers;
@@ -67,8 +74,10 @@ declare const fullApi: ApiFromModules<{
   clerk: typeof clerk;
   compliance: typeof compliance;
   contacts: typeof contacts;
+  debug: typeof debug;
   debug_email: typeof debug_email;
   developer: typeof developer;
+  diagnostic: typeof diagnostic;
   documents: typeof documents;
   docusign: typeof docusign;
   email: typeof email;
@@ -77,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   geo: typeof geo;
   georisk: typeof georisk;
   http: typeof http;
+  invoices: typeof invoices;
   locations: typeof locations;
   marketing: typeof marketing;
   notifications: typeof notifications;
@@ -88,7 +98,9 @@ declare const fullApi: ApiFromModules<{
   pdfGenerator: typeof pdfGenerator;
   pricing: typeof pricing;
   quotes: typeof quotes;
+  repair: typeof repair;
   reporting: typeof reporting;
+  searates: typeof searates;
   search: typeof search;
   shipments: typeof shipments;
   simulation: typeof simulation;

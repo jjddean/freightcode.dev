@@ -28,6 +28,10 @@ export const createBooking = mutation({
       contactPhone: v.string(),
     }),
     specialInstructions: v.optional(v.string()),
+    additionalFees: v.optional(v.array(v.object({
+      description: v.string(),
+      amount: v.number(),
+    }))),
   },
   handler: async (ctx, args) => {
     // Link to current user when available
@@ -50,9 +54,9 @@ export const createBooking = mutation({
       throw new Error("Invalid quoteId: quote not found");
     }
 
-    const selected = (quote.quotes as any[] | undefined)?.find((q) => q.carrierId === args.carrierQuoteId);
+    const selected = (quote.quotes as any[] | undefined)?.find((q) => (q.carrierId === args.carrierQuoteId) || (q.id === args.carrierQuoteId));
     if (!selected) {
-      throw new Error("Invalid carrierQuoteId for this quote");
+      throw new Error(`Carrier quote ${args.carrierQuoteId} matching failed. Options available: ${(quote.quotes as any[]).map(q => q.carrierId || q.id).join(', ')}`);
     }
 
     // Optional: enforce validity window if present
@@ -73,17 +77,38 @@ export const createBooking = mutation({
       bookingId,
       quoteId: args.quoteId,
       carrierQuoteId: args.carrierQuoteId,
+      carrierName: selected.carrierName || selected.carrier || "Standard Freight",
+      serviceType: selected.serviceType || selected.service_level?.name || "Standard",
+      carrierLogo: selected.carrierLogo || selected.provider_image_75,
       status: "pending",
       customerDetails: args.customerDetails,
       pickupDetails: args.pickupDetails,
       deliveryDetails: args.deliveryDetails,
       specialInstructions: args.specialInstructions,
       userId: linkedUserId,
-      orgId: (identity as any).org_id || quote.orgId, // Link to organization if present
-      price: selected.price, // Store price snapshot
+      orgId: (identity as any)?.org_id || quote.orgId, // Link to organization if present
+      // Handle both Shippo format (cost/currency) and legacy format (price.amount)
+      price: {
+        amount: (selected.price?.amount || selected.cost || selected.amount || 0) +
+          (args.additionalFees?.reduce((sum, fee) => sum + fee.amount, 0) || 0),
+        currency: selected.price?.currency || selected.currency || 'GBP',
+        breakdown: selected.price?.breakdown,
+        lineItems: [
+          ...(selected.price?.lineItems || []),
+          ...(args.additionalFees?.map(fee => ({
+            category: "Additional Services",
+            description: fee.description,
+            unit: "unit",
+            price: fee.amount,
+            currency: selected.price?.currency || selected.currency || 'GBP',
+            total: fee.amount
+          })) || [])
+        ]
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    } as any);
+    });
+
 
     // AUDIT LOG: Booking Created
     await ctx.db.insert("auditLogs", {
@@ -94,9 +119,9 @@ export const createBooking = mutation({
       userEmail: args.customerDetails.email,
       orgId: quote.orgId,
       details: {
-        amount: selected.price?.amount,
-        currency: selected.price?.currency,
-        carrier: selected.carrierName
+        amount: selected.price?.amount || selected.cost || selected.amount,
+        currency: selected.price?.currency || selected.currency,
+        carrier: selected.carrierName || selected.carrier
       },
       timestamp: Date.now(),
     });
@@ -104,9 +129,11 @@ export const createBooking = mutation({
     // AUTOMATIC INVOICE GENERATION
     // Create a pending payment attempt so it shows up in Payments Page
     try {
-      const amount = selected.price?.amount || 0;
-      const currency = selected.price?.currency || "USD";
+      // Handle both Shippo format (cost/currency) and legacy format (price.amount)
+      const amount = selected.price?.amount || selected.cost || selected.amount || 0;
+      const currency = selected.price?.currency || selected.currency || "GBP";
       const symbol = currency === "USD" ? "$" : (currency === "GBP" ? "£" : "€");
+
 
       await ctx.db.insert("paymentAttempts", {
         payment_id: `PAY-${bookingId}`,
@@ -150,31 +177,47 @@ export const createBooking = mutation({
           subtotal: { amount, amount_formatted: `${symbol}${amount}`, currency, currency_symbol: symbol },
           tax_total: { amount: 0, amount_formatted: `${symbol}0`, currency, currency_symbol: symbol }
         },
-        userId: linkedUserId
+        userId: linkedUserId,
+        metadata: {
+          route: `${quote.origin} → ${quote.destination}`,
+          lineItems: selected.price?.lineItems || [],
+          bookingId: bookingId,
+          origin: quote.origin,
+          destination: quote.destination
+        }
       });
     } catch (invErr) {
       console.error("INVOICE GENERATION FAILED (Booking allowed):", invErr);
       // We do not rethrow, so booking succeeds.
     }
 
-    // Send Confirmation Email
+    // Send Confirmation Email with price details
+    const bookingAmount = selected.price?.amount || selected.cost || selected.amount || 0;
+    const bookingCurrency = selected.price?.currency || selected.currency || 'GBP';
+    const carrierName = selected.carrierName || selected.carrier || 'Carrier';
+    const currencySymbol = bookingCurrency === 'GBP' ? '£' : bookingCurrency === 'EUR' ? '€' : '$';
+
     await ctx.scheduler.runAfter(0, internal.email.sendEmail, {
       to: args.customerDetails.email,
       subject: `Booking Confirmation: ${bookingId}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #003366;">Booking Received</h1>
+          <h1 style="color: #003366;">Booking Confirmed</h1>
           <p>Dear ${args.customerDetails.name},</p>
           <p>Your booking <strong>${bookingId}</strong> has been received and is pending approval.</p>
           <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Carrier:</strong> ${carrierName}</p>
+            <p><strong>Price:</strong> ${currencySymbol}${bookingAmount.toFixed(2)}</p>
             <p><strong>Origin:</strong> ${args.pickupDetails.address}</p>
             <p><strong>Destination:</strong> ${args.deliveryDetails.address}</p>
+            <p><strong>Pickup Date:</strong> ${args.pickupDetails.date}</p>
           </div>
           <p>We will notify you once your shipment is fully approved.</p>
           <p>Best regards,<br/>The freightcode Team</p>
         </div>
       `
     });
+
 
     // Generate Notification
     if (identity?.subject) {
@@ -228,7 +271,7 @@ export const listBookings = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const orgId = args.orgId ?? null;
+    const orgId = args.orgId;
 
     if (orgId) {
       // Filter by organization
@@ -249,7 +292,7 @@ export const listBookings = query({
       return await ctx.db
         .query("bookings")
         .withIndex("byUserId", (q) => q.eq("userId", user._id))
-        .filter((q) => q.eq(q.field("orgId"), undefined))
+        .filter((q) => q.or(q.eq(q.field("orgId"), null), q.eq(q.field("orgId"), undefined)))
         .order("desc")
         .collect();
     }
@@ -536,6 +579,19 @@ export const confirmBookingPayment = mutation({
       updatedAt: Date.now(),
     });
 
+    // Also update the paymentAttempts record so Payments page shows "Paid"
+    const paymentAttempt = await ctx.db
+      .query("paymentAttempts")
+      .filter((q) => q.eq(q.field("payment_id"), `PAY-${booking.bookingId}`))
+      .first();
+
+    if (paymentAttempt) {
+      await ctx.db.patch(paymentAttempt._id, {
+        status: "completed",
+        updated_at: Date.now(),
+      });
+    }
+
     // Determine amount
     const amount = booking.price?.amount || 0;
     const currency = booking.price?.currency || "USD";
@@ -555,6 +611,84 @@ export const confirmBookingPayment = mutation({
       timestamp: Date.now(),
     });
 
+    // Fetch the associated quote to get more details for Shipment/BoL
+    const quote = await ctx.db
+      .query("quotes")
+      .withIndex("byQuoteId", (q) => q.eq("quoteId", booking.quoteId))
+      .unique();
+
+    // 1. CREATE SHIPMENT AUTOMATICALLY
+    const shipmentRecordId = await ctx.db.insert("shipments", {
+      shipmentId: booking.bookingId,
+      status: "booked", // Initial status after payment
+      currentLocation: {
+        city: quote?.origin?.split(',')?.[0]?.trim() || "London",
+        state: quote?.origin?.split(',')?.[1]?.trim() || "UK",
+        country: quote?.origin?.split(',')?.[2]?.trim() || "UK",
+        coordinates: { lat: 51.5074, lng: -0.1278 } // Simulated London
+      },
+      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      carrier: booking.carrierName || "Standard",
+      trackingNumber: `TRK-${booking.bookingId.split('-')[1] || Date.now()}`,
+      service: booking.serviceType || "Standard",
+      shipmentDetails: {
+        weight: quote?.weight || "0 kg",
+        dimensions: `${quote?.dimensions?.length || 0}x${quote?.dimensions?.width || 0}x${quote?.dimensions?.height || 0} cm`,
+        origin: quote?.origin || "Origin",
+        destination: quote?.destination || "Destination",
+        value: quote?.value || "£0",
+      },
+      userId: booking.userId,
+      orgId: booking.orgId ?? null,
+      lastUpdated: Date.now(),
+      createdAt: Date.now(),
+    });
+    console.log("AUTOMATIC SHIPMENT CREATED:", shipmentRecordId);
+
+    // 2. CREATE BILL OF LADING DOCUMENT
+    const docId = await ctx.db.insert("documents", {
+      type: "bill_of_lading",
+      bookingId: booking.bookingId,
+      shipmentId: booking.bookingId,
+      status: "draft",
+      documentData: {
+        documentNumber: `BOL-${booking.bookingId}`,
+        issueDate: new Date().toISOString(),
+        parties: {
+          shipper: {
+            name: booking.customerDetails.name,
+            address: booking.pickupDetails?.address || "Shipper Address",
+            contact: booking.customerDetails.phone,
+          },
+          consignee: {
+            name: "Receiver",
+            address: booking.deliveryDetails?.address || "Receiver Address",
+            contact: "N/A",
+          },
+          carrier: {
+            name: booking.carrierName || "Carrier",
+            address: "Main Terminal",
+            contact: "Support",
+          }
+        },
+        cargoDetails: {
+          description: `Freight Shipment - ${booking.serviceType || ''}`,
+          weight: quote?.weight || "0 kg",
+          dimensions: `${quote?.dimensions?.length || 0}x${quote?.dimensions?.width || 0}x${quote?.dimensions?.height || 0} cm`,
+          value: quote?.value || "£0",
+        },
+        routeDetails: {
+          origin: quote?.origin || "Origin",
+          destination: quote?.destination || "Destination",
+        }
+      },
+      userId: booking.userId,
+      orgId: booking.orgId ?? null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    console.log("AUTOMATIC BOL CREATED:", docId);
+
     // Send Confirmation Email
     await ctx.scheduler.runAfter(0, internal.email.sendEmail, {
       to: booking.customerDetails.email,
@@ -568,7 +702,8 @@ export const confirmBookingPayment = mutation({
           <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0;">
              <p style="color: #166534; font-weight: bold; margin: 0;">✓ Payment Verified: ${amount} ${currency}</p>
           </div>
-          <a href="${process.env.CONVEX_SITE_URL}/bookings" style="display:inline-block; background:#003366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; margin-top:20px;">View Booking</a>
+          <p>You can track your shipment and view documents in your dashboard.</p>
+          <a href="${process.env.CONVEX_SITE_URL}/shipments" style="display:inline-block; background:#003366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; margin-top:20px;">Track Shipment</a>
         </div>
       `
     });
@@ -589,4 +724,85 @@ export const confirmBookingPayment = mutation({
 
     return { success: true, bookingId: booking.bookingId };
   },
+});
+
+export const fixMissingDocuments = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const confirmedBookings = await ctx.db
+      .query("bookings")
+      .filter((q) => q.eq(q.field("status"), "confirmed"))
+      .collect();
+
+    let fixedCount = 0;
+
+    for (const booking of confirmedBookings) {
+      // 1. Check if shipment exists
+      const existingShipment = await ctx.db
+        .query("shipments")
+        .withIndex("byShipmentId", (q) => q.eq("shipmentId", booking.bookingId))
+        .first();
+
+      if (!existingShipment) {
+        // Create it (hardened version)
+        await ctx.db.insert("shipments", {
+          shipmentId: booking.bookingId,
+          status: "booked",
+          currentLocation: {
+            city: "London", state: "UK", country: "UK",
+            coordinates: { lat: 51.5074, lng: -0.1278 }
+          },
+          estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          carrier: booking.carrierName || "Standard",
+          trackingNumber: `TRK-${booking.bookingId.split('-')[1] || Date.now()}`,
+          service: booking.serviceType || "Standard",
+          shipmentDetails: {
+            weight: "0 kg",
+            dimensions: "0x0x0 cm",
+            origin: "Origin",
+            destination: "Destination",
+            value: "£0",
+          },
+          userId: booking.userId,
+          orgId: booking.orgId ?? null,
+          lastUpdated: Date.now(),
+          createdAt: Date.now(),
+        });
+      }
+
+      // 2. Check if BoL exists
+      const existingBoL = await ctx.db
+        .query("documents")
+        .withIndex("byBookingId", (q) => q.eq("bookingId", booking.bookingId))
+        .filter((q) => q.eq(q.field("type"), "bill_of_lading"))
+        .first();
+
+      if (!existingBoL) {
+        await ctx.db.insert("documents", {
+          type: "bill_of_lading",
+          bookingId: booking.bookingId,
+          shipmentId: booking.bookingId,
+          status: "draft",
+          documentData: {
+            documentNumber: `BOL-${booking.bookingId}`,
+            issueDate: new Date().toISOString(),
+            parties: {
+              shipper: { name: booking.customerDetails.name, address: booking.pickupDetails?.address || "Shipper Address", contact: booking.customerDetails.phone },
+              consignee: { name: "Receiver", address: booking.deliveryDetails?.address || "Receiver Address", contact: "N/A" },
+              carrier: { name: booking.carrierName || "Carrier", address: "Main Terminal", contact: "Support" }
+            },
+            cargoDetails: { description: "Freight Shipment", weight: "0 kg", dimensions: "0x0x0 cm", value: "£0" },
+            routeDetails: { origin: "Origin", destination: "Destination" }
+          },
+          userId: booking.userId,
+          orgId: booking.orgId ?? null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        fixedCount++;
+      }
+    }
+
+    return { fixedCount };
+  }
 });

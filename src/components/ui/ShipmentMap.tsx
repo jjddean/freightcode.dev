@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
+import mapboxgl from 'mapbox-gl';
 // @ts-ignore
 import Map, { Marker, Popup, NavigationControl, FullscreenControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -9,6 +10,7 @@ import { Ship, Package, Navigation } from 'lucide-react';
 
 interface ShipmentMapProps {
     className?: string;
+    minimal?: boolean;
 }
 
 // Geocode city names to coordinates (simplified mapping)
@@ -38,7 +40,7 @@ interface MapPoint {
     destination: string;
 }
 
-export function ShipmentMap({ className = '' }: ShipmentMapProps) {
+export function ShipmentMap({ className = '', minimal = false }: ShipmentMapProps) {
     // Fetch live shipments
     const liveShipments = useQuery(api.shipments.listShipments, { onlyMine: true });
     const [mapData, setMapData] = useState<MapPoint[]>([]);
@@ -88,26 +90,156 @@ export function ShipmentMap({ className = '' }: ShipmentMapProps) {
         zoom: 1.5
     };
 
+    const mapRef = React.useRef<any>(null); // Use any to avoid strict typing issues with react-map-gl ref
+    const navCtrlRef = React.useRef<mapboxgl.NavigationControl | null>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    // Robust Resize Observer (Best Practice)
+    useEffect(() => {
+        const map = mapRef.current?.getMap();
+        const el = containerRef.current;
+        if (!map || !el) return;
+
+        // Standard ResizeObserver pattern for Mapbox
+        const observer = new ResizeObserver(() => {
+            requestAnimationFrame(() => {
+                map.resize();
+            });
+        });
+
+        observer.observe(el);
+
+        return () => observer.disconnect();
+    }, []);
+
+    // Polling for smooth animation support (User Requested)
+    const resizeIntervalRef = React.useRef<any>(null);
+
+    const startResizePolling = () => {
+        if (resizeIntervalRef.current) return;
+        resizeIntervalRef.current = setInterval(() => {
+            const map = mapRef.current?.getMap();
+            if (map) {
+                map.resize();
+            }
+        }, 16); // ~60fps
+    };
+
+    const stopResizePolling = () => {
+        if (resizeIntervalRef.current) {
+            clearInterval(resizeIntervalRef.current);
+            resizeIntervalRef.current = null;
+            // One final snap
+            mapRef.current?.getMap()?.resize();
+        }
+    };
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const onTransitionStart = (e: TransitionEvent) => {
+            // Check if the transition is on the container itself or a relevant height change
+            if (e.target === container || e.propertyName === 'height') {
+                startResizePolling();
+            }
+        };
+
+        const onTransitionEnd = (e: TransitionEvent) => {
+            // Check if the transition is on the container itself or a relevant height change
+            if (e.target === container || e.propertyName === 'height') {
+                stopResizePolling();
+            }
+        };
+
+        container.addEventListener('transitionstart', onTransitionStart as EventListener);
+        container.addEventListener('transitionend', onTransitionEnd as EventListener);
+
+        return () => {
+            container.removeEventListener('transitionstart', onTransitionStart as EventListener);
+            container.removeEventListener('transitionend', onTransitionEnd as EventListener);
+            stopResizePolling();
+        };
+    }, []);
+
+    // Imperative Control Management
+    useEffect(() => {
+        const map = mapRef.current?.getMap();
+        if (!map) return;
+
+        // Force resize when control visibility changes
+        requestAnimationFrame(() => map.resize());
+
+        // Navigation Control (Only when expanded/!minimal)
+        if (!minimal) {
+            // Expand mode: Add control if missing
+            if (!navCtrlRef.current) {
+                navCtrlRef.current = new mapboxgl.NavigationControl();
+            }
+            if (!map.hasControl(navCtrlRef.current)) {
+                map.addControl(navCtrlRef.current, 'top-right');
+            }
+        } else {
+            // Minimal mode: Remove control if present
+            if (navCtrlRef.current) {
+                if (map.hasControl(navCtrlRef.current)) {
+                    map.removeControl(navCtrlRef.current);
+                }
+                navCtrlRef.current = null;
+            }
+        }
+    }, [minimal]);
+
+    // Handle Interaction (Disable when minimal)
+    useEffect(() => {
+        const map = mapRef.current?.getMap();
+        if (!map) return;
+
+        if (minimal) {
+            map.scrollZoom.disable();
+            map.dragPan.disable();
+            map.doubleClickZoom.disable();
+            map.keyboard.disable();
+            map.touchZoomRotate.disable();
+        } else {
+            map.scrollZoom.enable();
+            map.dragPan.enable();
+            map.doubleClickZoom.enable();
+            map.keyboard.enable();
+            map.touchZoomRotate.enable();
+        }
+    }, [minimal]);
+
     if (!MAPBOX_TOKEN) {
         return (
-            <div className={`h-full w-full flex items-center justify-center bg-gray-900 text-white ${className}`}>
+            <div className={`flex items-center justify-center text-white ${className}`}>
                 <p>Missing VITE_MAPBOX_TOKEN</p>
             </div>
         );
     }
 
     return (
-        <div className={`relative w-full h-full rounded-xl overflow-hidden shadow-lg border border-gray-800 bg-slate-900 ${className}`}>
+        <div ref={containerRef} className={`relative ${className} ${minimal ? 'minimal-map' : ''}`}>
+
+            <style>{`
+                /* Minimal mode overrides */
+                ${minimal ? `
+                    .minimal-map .mapboxgl-control-container { display: none !important; }
+                    .minimal-map .mapboxgl-ctrl-logo { display: none !important; }
+                    .minimal-map .mapboxgl-ctrl-attrib { display: none !important; }
+                ` : ''}
+            `}</style>
+
             <Map
+                ref={mapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
                 initialViewState={initialViewState}
-                style={{ width: '100%', height: '100%' }}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
+                style={{ position: "absolute", inset: 0 }}
+                onLoad={() => mapRef.current?.getMap()?.resize()}
+                mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                 attributionControl={false}
             >
-                {/* Controls */}
-                <NavigationControl position="top-right" />
-                <FullscreenControl position="top-right" />
+                {/* Controls - IMPERATIVELY MANAGED via useEffect, do not render declarative controls */}
 
                 {/* Markers */}
                 {mapData.map((shipment) => (
@@ -182,3 +314,4 @@ export function ShipmentMap({ className = '' }: ShipmentMapProps) {
         </div>
     );
 }
+

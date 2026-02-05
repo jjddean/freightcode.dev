@@ -66,6 +66,13 @@ export const paymentAttemptValidators = {
       currency_symbol: v.string(),
     }),
   }),
+  metadata: v.optional(v.object({
+    route: v.optional(v.string()),
+    origin: v.optional(v.string()),
+    destination: v.optional(v.string()),
+    bookingId: v.optional(v.string()),
+    lineItems: v.optional(v.array(v.any())),
+  })),
 };
 
 // Combined validator for the complete payment attempt data
@@ -141,5 +148,10 @@ export function transformWebhookData(data: any) {
         currency_symbol: data.totals.tax_total.currency_symbol,
       },
     },
+    metadata: data.metadata ? {
+      route: data.metadata.route,
+      origin: data.metadata.origin,
+      destination: data.metadata.destination,
+    } : undefined,
   };
-} 
+}

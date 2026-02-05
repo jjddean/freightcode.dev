@@ -108,10 +108,7 @@ This log documents the major stages of development for the FreightCode / MarketL
 ## Phase 7: Digital Freight Forwarder MVP ✅ (Current)
 **Goal**: Transform marketplace into a functional Digital Freight Forwarder (DFF).
 - [x] **Guest Quoting (Backend)**: Added `createPublicQuote` mutation for non-authenticated pricing.
-- [x] **Contracts Engine**: Implemented `contracts` table and logic to prioritize negotiated rates.
-- [x] **Checkout Integrations**: Added Customs Brokerage & Insurance upsells to booking flow.
-- [x] **Seeding**: Created `seedContracts` script for testing Maersk/MSC rates.
-- [ ] **Guest Quoting (Frontend)**: ~Widget implemented~ (Reverted due to layout issues, pending redesign).
+- [x] **Contracts Engine**: Implemented `contr![](image-1.png)] **Guest Quoting (Frontend)**: ~Widget implemented~ (Reverted due to layout issues, pending redesign).
 
 ### [2026-02-01] - DFF Core Implementation
 - **Backend**: Public API endpoints for quoting live.
@@ -124,3 +121,38 @@ This log documents the major stages of development for the FreightCode / MarketL
 - **Result**: Caused backend crash compatible with Convex runtime.
 - **Remediation**: Emergency revert applied. Code returned to `Math.random` (stable).
 - **Status**: Private keys deleted (Secure). App Logic (Reverted/Stable). Marketing Site (Reverted/Stable).
+
+### [2026-02-05] - Shippo Rate & Booking Resolution
+- **Fix**: Resolved £0.00 display issue by normalizing `cost` field from Shippo API.
+- **Fix**: Corrected `carrierQuoteId` lookup in `createBooking` to match normalized quote structure.
+- **Fix**: Added `v.union(v.string(), v.null())` to `orgId` input in `listBookings` to prevent app crash on personal accounts.
+- **Enhancement**: Fixed text overlap in Booking Detail sheet by switching to a stacked layout for Carrier/Created and Email/Phone.
+- **Enhancement**: Bookings now store `carrierName` and `serviceType` for clearer display instead of internal IDs.
+- **Enhancement**: Payments page now correctly updates to "Paid" status after Stripe redirection.
+
+### [2026-02-05] - Detailed Price Breakdown & Route Tracking
+- **Feature**: Implemented granular price breakdown with Origin, Main Transport, and Destination categories.
+- **Backend**: Added `lineItemSchema` to `convex/schema.ts` for detailed charges (description, unit, price, minimum, total, VAT).
+- **Backend**: Updated `quotes.ts` with `generateMockLineItems()` helper; added `lineItems` to all quote mutations.
+- **Backend**: Created `backfillQuotesWithLineItems` mutation - successfully updated 38 existing quotes.
+- **Backend**: Added `route` field to `invoices` table; auto-populated in `workflows.ts` during invoice generation.
+- **Backend**: Created `convex/invoices.ts` with `listMyInvoices` query for user-specific invoices.
+- **Frontend**: Created `PriceBreakdownTable` component (`src/components/shipping/PriceBreakdownTable.tsx`).
+- **Frontend**: Integrated breakdown into Quotes page (View Rates drawer) and Booking confirmation dialog.
+- **Frontend**: Added "Route" column to `PaymentsPage.tsx` invoice table; merged Convex invoices with live payments.
+- **Status**: Backend complete. Frontend breakdown display had gap (see 2026-02-05 correction below).
+
+### [2026-02-05] - SeaRates API Integration & Breakdown Fix
+- **Issue Identified**: Price breakdown NOT showing in Carrier Quotes drawer despite backend having lineItems.
+  - **Root Cause**: Frontend `carriers.ts` returned `CarrierRate` objects with flat `cost` values only - no `price.lineItems` field.
+  - **Drawer check**: `q.price?.lineItems` returned undefined, so breakdown section never rendered.
+  - **Previous claim was incorrect**: "Feature complete" was false - only backend was complete, not frontend carrier rates.
+- **Backend**: Created `convex/searates.ts` with SeaRates token auth + GraphQL rate fetching.
+- **Backend**: Added `SEARATES_PLATFORM_ID` and `SEARATES_API_KEY` to Convex environment.
+- **Backend**: Removed circular-reference action that caused TypeScript build errors.
+- **Frontend**: Extended `CarrierRate` interface in `carriers.ts` with `price.lineItems` property.
+- **Frontend**: Added `generateLineItems()` helper to create detailed breakdowns.
+- **Frontend**: Updated ALL mock carrier rates (FedEx, UPS, USPS, DHL, Royal Mail) with `price.lineItems`.
+- **Frontend**: Fixed SeaRates credentials and added coordinate mapping for 18 major ports.
+- **Frontend**: Added `price.lineItems` to SeaRates rate response mapping (was returning flat cost only).
+- **Status**: COMPLETE. All carrier rates (mock + SeaRates) now include lineItems for price breakdown.

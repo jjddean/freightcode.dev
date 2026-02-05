@@ -548,16 +548,73 @@ const DocumentsPage = () => {
                         <SheetDescription>{selectedDoc?.documentData?.documentNumber}</SheetDescription>
                     </SheetHeader>
                     {selectedDoc && (
-                        <div className="mt-6 space-y-6">
-                            <div className="p-4 bg-gray-50 rounded-lg border space-y-2">
-                                {/* Detail content similar to CompliancePage but maybe cleaner */}
+                        <div className="mt-6 space-y-6 pb-20">
+                            <div className="p-4 bg-gray-50 rounded-lg border space-y-4">
                                 <div className="grid grid-cols-2 gap-2 text-sm">
                                     <span className="text-gray-500">Type:</span>
                                     <span className="font-medium capitalize">{selectedDoc.type?.replace(/_/g, ' ')}</span>
                                     <span className="text-gray-500">Status:</span>
                                     <span className="font-medium capitalize">{selectedDoc.status}</span>
                                 </div>
-                                <div className="pt-2">
+
+                                {selectedDoc.documentData?.parties && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider text-[10px]">Parties</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="text-xs text-gray-500 block mb-1">Shipper</span>
+                                                <div className="text-sm font-medium">{selectedDoc.documentData.parties.shipper?.name || '-'}</div>
+                                                <div className="text-[10px] text-gray-400 line-clamp-2">{selectedDoc.documentData.parties.shipper?.address}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-gray-500 block mb-1">Consignee</span>
+                                                <div className="text-sm font-medium">{selectedDoc.documentData.parties.consignee?.name || '-'}</div>
+                                                <div className="text-[10px] text-gray-400 line-clamp-2">{selectedDoc.documentData.parties.consignee?.address}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDoc.documentData?.cargoDetails && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider text-[10px]">Cargo Details</h4>
+                                        <p className="text-sm font-medium">{selectedDoc.documentData.cargoDetails.description}</p>
+                                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                            <div className="bg-white p-2 border rounded shadow-sm">
+                                                <span className="text-gray-500 block">Weight</span>
+                                                <span className="font-semibold">{selectedDoc.documentData.cargoDetails.weight}</span>
+                                            </div>
+                                            <div className="bg-white p-2 border rounded shadow-sm">
+                                                <span className="text-gray-500 block">Dims</span>
+                                                <span className="font-semibold">{selectedDoc.documentData.cargoDetails.dimensions}</span>
+                                            </div>
+                                            <div className="bg-white p-2 border rounded shadow-sm">
+                                                <span className="text-gray-500 block">Value</span>
+                                                <span className="font-semibold text-primary">{selectedDoc.documentData.cargoDetails.value}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDoc.documentData?.routeDetails && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider text-[10px]">Route Details</h4>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <div className="flex-1">
+                                                <div className="text-xs text-gray-500">Origin</div>
+                                                <div className="font-medium truncate">{selectedDoc.documentData.routeDetails.origin}</div>
+                                            </div>
+                                            <div className="text-gray-400">→</div>
+                                            <div className="flex-1">
+                                                <div className="text-xs text-gray-500 text-right">Destination</div>
+                                                <div className="font-medium truncate text-right">{selectedDoc.documentData.routeDetails.destination}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="pt-6 border-t font-semibold text-xs tracking-wider uppercase text-gray-500 mb-2">Actions</div>
+                                <div className="space-y-2">
                                     {selectedDoc.docusign?.envelopeId ? (
                                         <Button size="sm" variant="outline" className="w-full" onClick={() => handleRefreshStatus(selectedDoc)} disabled={refreshingId === selectedDoc._id}>
                                             <RefreshCw className={`h-4 w-4 mr-2 ${refreshingId === selectedDoc._id ? 'animate-spin' : ''}`} /> Refresh Status
@@ -581,13 +638,15 @@ const DocumentsPage = () => {
             </Sheet>
 
             {/* --- PROCESSING OVERLAY --- */}
-            {processingReturn && (
-                <div className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center animate-in fade-in duration-300">
-                    <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"></div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Finalizing Signature</h2>
-                    <p className="text-gray-500">Securely updating document status...</p>
-                </div>
-            )}
+            {
+                processingReturn && (
+                    <div className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"></div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Finalizing Signature</h2>
+                        <p className="text-gray-500">Securely updating document status...</p>
+                    </div>
+                )
+            }
 
             <Drawer open={sendOpen} onOpenChange={setSendOpen} shouldScaleBackground={false}>
                 <DrawerContent className="max-w-md mx-auto">
@@ -664,7 +723,7 @@ const DocumentsPage = () => {
                 </DrawerContent>
             </Drawer>
 
-        </div>
+        </div >
     );
 };
 

@@ -28,9 +28,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
   const navigate = useNavigate();
 
   // Real Data
-  const rawNotifications = useQuery(api.notifications.list);
-  const markReadMutation = useMutation(api.notifications.markRead);
-  const markAllReadMutation = useMutation(api.notifications.markAllRead);
+  const rawNotifications = useQuery(api.notifications.list, { limit: 50 });
+  const dbUnreadCount = useQuery(api.notifications.getUnreadCount) || 0;
+  const markRead = useMutation(api.notifications.markRead);
+  const markAllRead = useMutation(api.notifications.markAllRead);
 
   // Normalize data format
   const notifications = (rawNotifications || []).map((n: any) => ({
@@ -39,7 +40,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
     timestamp: new Date(n.createdAt).toISOString()
   }));
 
-  const unreadCount = notifications.filter((n: any) => !n.read).length;
+  const unreadCount = dbUnreadCount;
   const urgentCount = notifications.filter((n: any) => n.priority === 'urgent' && !n.read).length;
 
   const filteredNotifications = notifications.filter((notification: any) => {
@@ -54,11 +55,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
   });
 
   const markAsRead = (id: string) => {
-    markReadMutation({ notificationId: id as any });
+    markRead({ notificationId: id as any });
   };
 
-  const markAllAsRead = () => {
-    markAllReadMutation();
+  const handleMarkAllRead = () => {
+    markAllRead({});
   };
 
   const getNotificationIcon = (type: string) => {
@@ -182,14 +183,14 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className }) =>
 
           {/* Actions */}
           {unreadCount > 0 && (
-            <div className="p-3 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-200 flex justify-end">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={markAllAsRead}
-                className="w-full"
+                className="text-[10px] h-6 px-2 text-primary"
+                onClick={handleMarkAllRead}
               >
-                Mark All as Read
+                Mark all as read
               </Button>
             </div>
           )}

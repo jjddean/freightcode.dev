@@ -5,6 +5,24 @@ import { calculateShippingPrice, estimateTransitTime } from "./pricing";
 import { getFreightEstimates } from "./freightos";
 import { findLocode } from "./locations";
 
+// Helper to generate detailed price breakdown
+function generateMockLineItems(origin: string, destination: string) {
+  const currency = "USD";
+  return [
+    { category: "Origin", description: "Pick up", unit: "wm", price: 90, currency, minimum: 120, total: 180, vat: "%" },
+    { category: "Origin", description: "Documentation fee", unit: "shipment", price: 115, currency, total: 115, vat: "%" },
+    { category: "Main Transport", description: `Ocean freight ${origin} - HUB`, unit: "wm", price: 221.06, currency, minimum: 94, total: 442.12, vat: "%" },
+    { category: "Main Transport", description: `Ocean freight HUB - ${destination}`, unit: "wm", price: 73, currency, minimum: 73, total: 146, vat: "%" },
+    { category: "Destination", description: "Security Surcharge", unit: "wm", price: 11, currency, minimum: 40, total: 40, vat: "%" },
+    { category: "Destination", description: "Fuel Surcharge", unit: "wm", price: 18.5, currency, minimum: 20, total: 37, vat: "%" },
+    { category: "Destination", description: "Delivery order fee", unit: "shipment", price: 200, currency, total: 200, vat: "%" },
+    { category: "Destination", description: "Documentation fee", unit: "shipment", price: 10, currency, total: 10, vat: "%" },
+    { category: "Destination", description: "Delivery", unit: "wm", price: 70, currency, minimum: 110, total: 140, vat: "%" },
+    { category: "Destination", description: "Terminal Handling", unit: "wm", price: 25, currency, minimum: 50, total: 50, vat: "%" },
+    { category: "Destination", description: "Cargo handling charge", unit: "wm", price: 5, currency, minimum: 50, total: 50, vat: "%" },
+  ];
+}
+
 // ... (imports remain)
 export const createQuote = mutation({
   args: {
@@ -28,7 +46,7 @@ export const createQuote = mutation({
       status: v.string(),
       quotes: v.array(v.any()),
     })),
-    orgId: v.optional(v.string()), // New: receive org context
+    orgId: v.optional(v.union(v.string(), v.null())), // New: receive org context
   },
   handler: async (ctx, { request, response, orgId: argsOrgId }) => {
     try {
@@ -42,8 +60,8 @@ export const createQuote = mutation({
         if (user) linkedUserId = user._id as any;
       }
 
-      // Determine orgId: Arg > Token > null
-      const orgId = argsOrgId || (identity as any)?.org_id || undefined;
+      // Determine orgId: Arg > Token > undefined
+      const orgId = argsOrgId || (identity as any)?.org_id;
 
       // 1. Map Cities to UN/LOCODES (Using Database)
       const originCode = findLocode(request.origin);
@@ -107,9 +125,15 @@ export const createQuote = mutation({
       }
       */
 
-      // FALLBACK: If API failed or returned no data, use Mock Data
-      // Since we commented out the API call, estimates is null, forcing this block.
-      if (!estimates || (!estimates.OCEAN && !estimates.AIR)) {
+      // First, check if SeaRates quotes were passed in (from the action wrapper)
+      if (request.quotes && request.quotes.length > 0) {
+        console.log(`[Quotes] Using ${request.quotes.length} pre-fetched SeaRates quotes`);
+        newQuotes.push(...request.quotes);
+      }
+
+      // FALLBACK: If no API data, use Mock Data
+      // This ensures we always have at least some quotes to show
+      if (newQuotes.length === 0 && (!estimates || (!estimates.OCEAN && !estimates.AIR))) {
         // Mock Ocean
         newQuotes.push({
           carrierId: `rate-ocean-mock-${Date.now()}`,
@@ -124,7 +148,8 @@ export const createQuote = mutation({
               fuelSurcharge: 500,
               securityFee: 150,
               documentation: 50
-            }
+            },
+            lineItems: generateMockLineItems(request.origin, request.destination)
           },
           validUntil: new Date(Date.now() + 7 * 86400000).toISOString()
         });
@@ -143,7 +168,8 @@ export const createQuote = mutation({
               fuelSurcharge: 1800,
               securityFee: 300,
               documentation: 100
-            }
+            },
+            lineItems: generateMockLineItems(request.origin, request.destination)
           },
           validUntil: new Date(Date.now() + 3 * 86400000).toISOString()
         });
@@ -199,7 +225,8 @@ export const createQuote = mutation({
         carrierId: r.carrierId ?? r.id ?? `carrier-${r.carrier}`,
         carrierName: r.carrierName ?? r.carrier ?? "Unknown carrier",
         price: {
-          amount: Number(r.price?.amount ?? r.amount?.total ?? r.amount ?? 0),
+          // Handle Shippo format (cost) and legacy format (price.amount)
+          amount: Number(r.price?.amount ?? r.cost ?? r.amount?.total ?? r.amount ?? 0),
           breakdown: {
             baseRate: Number(r.price?.breakdown?.baseRate ?? r.amount?.baseRate ?? 0),
             documentation: Number(r.price?.breakdown?.documentation ?? r.amount?.documentation ?? 0),
@@ -207,11 +234,16 @@ export const createQuote = mutation({
             securityFee: Number(r.price?.breakdown?.securityFee ?? r.amount?.securityFee ?? 0),
           },
           currency: r.price?.currency ?? r.currency ?? "USD",
+          // Always ensure lineItems exist - generate if not present or empty
+          lineItems: (r.price?.lineItems && r.price.lineItems.length > 0)
+            ? r.price.lineItems
+            : generateMockLineItems(request.origin, request.destination),
         },
-        serviceType: r.serviceType ?? r.service_level ?? "unknown",
+        serviceType: r.serviceType ?? r.service ?? r.service_level ?? "unknown",
         transitTime: r.transitTime ?? r.transit_time ?? "unknown",
         validUntil: r.validUntil ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       }));
+
 
       const quoteDoc: any = {
         ...request,
@@ -250,7 +282,7 @@ export const createInstantQuoteAndBooking = mutation({
       contactInfo: v.object({ name: v.string(), email: v.string(), phone: v.string(), company: v.string() }),
       quotes: v.optional(v.array(v.any())),
     }),
-    orgId: v.optional(v.string()), // New
+    orgId: v.optional(v.union(v.string(), v.null())), // New
   },
   handler: async (ctx, { request, orgId: argsOrgId }) => {
     const pricing = calculateShippingPrice({
@@ -264,6 +296,20 @@ export const createInstantQuoteAndBooking = mutation({
     const transitTime = estimateTransitTime(request.origin, request.destination, request.serviceType);
 
     let quotes: any[] = request.quotes || [];
+
+    // DEBUG: Log incoming quotes to trace cost values
+    console.log('📦 createInstantQuoteAndBooking - Incoming quotes:', quotes.length, 'rates');
+    if (quotes.length > 0) {
+      console.log('📦 Sample rate fields:', {
+        first: quotes[0],
+        hasPrice: !!quotes[0]?.price,
+        hasCost: !!quotes[0]?.cost,
+        hasAmount: !!quotes[0]?.amount,
+        priceAmount: quotes[0]?.price?.amount,
+        cost: quotes[0]?.cost,
+        amount: quotes[0]?.amount,
+      });
+    }
 
     if (quotes.length === 0) {
       quotes = [{
@@ -287,14 +333,15 @@ export const createInstantQuoteAndBooking = mutation({
       if (user) linkedUserId = user._id as any;
     }
 
-    const orgId = argsOrgId || (identity as any)?.org_id || null; // Matches schema optional string
+    const orgId = argsOrgId || (identity as any)?.org_id;
 
-    // STRICT NORMALIZATION
+    // STRICT NORMALIZATION - Handle Shippo format (cost) and legacy format (price.amount)
     const normalizedQuotes = quotes.map((r: any) => ({
       carrierId: r.carrierId ?? r.id ?? `carrier-${Date.now()}`,
       carrierName: r.carrierName ?? r.carrier ?? "freightcode Logistics",
       price: {
-        amount: Number(r.price?.amount ?? r.amount?.total ?? r.amount ?? 0),
+        // Handle Shippo format (cost) and legacy format (price.amount)
+        amount: Number(r.price?.amount ?? r.cost ?? r.amount?.total ?? r.amount ?? 0),
         breakdown: {
           baseRate: Number(r.price?.breakdown?.baseRate ?? r.amount?.baseRate ?? r.amount ?? 0),
           documentation: Number(r.price?.breakdown?.documentation ?? r.amount?.documentation ?? 0),
@@ -302,11 +349,16 @@ export const createInstantQuoteAndBooking = mutation({
           securityFee: Number(r.price?.breakdown?.securityFee ?? r.amount?.securityFee ?? 0),
         },
         currency: r.price?.currency ?? r.currency ?? "USD",
+        // IMPORTANT: Preserve lineItems or generate mock breakdown (check for empty array too)
+        lineItems: (r.price?.lineItems && r.price.lineItems.length > 0)
+          ? r.price.lineItems
+          : generateMockLineItems(request.origin, request.destination),
       },
-      serviceType: (r.serviceType ?? r.service_level ?? r.serviceType) || "Standard Freight",
+      serviceType: (r.serviceType ?? r.service ?? r.service_level ?? r.serviceType) || "Standard Freight",
       transitTime: r.transitTime ?? r.transit_time ?? "3-5 days",
       validUntil: r.validUntil ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     }));
+
 
     const quoteId = `QT-${Date.now()}`;
     const quoteDoc: any = {
@@ -327,12 +379,12 @@ export const createInstantQuoteAndBooking = mutation({
 });
 
 export const listQuotes = query({
-  args: { orgId: v.optional(v.union(v.string(), v.null())) }, // Updated args
+  args: { orgId: v.optional(v.union(v.string(), v.null())) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const orgId = args.orgId ?? null;
+    const orgId = args.orgId;
 
     if (orgId) {
       // Filter by organization
@@ -353,14 +405,14 @@ export const listQuotes = query({
       return await ctx.db
         .query("quotes")
         .withIndex("byUserId", (q) => q.eq("userId", user._id))
-        .filter((q) => q.eq(q.field("orgId"), undefined))
+        .filter((q) => q.or(q.eq(q.field("orgId"), null), q.eq(q.field("orgId"), undefined)))
         .order("desc")
         .collect();
     }
   },
 });
 
-export const getQuote = query({
+export const getQuoteByQuoteId = query({
   args: { quoteId: v.string() },
   handler: async (ctx, { quoteId }) => {
     return await ctx.db
@@ -369,6 +421,8 @@ export const getQuote = query({
       .unique();
   },
 });
+
+export const getQuote = getQuoteByQuoteId;
 
 // New: list quotes for the current authenticated user
 export const listMyQuotes = query({
@@ -389,6 +443,46 @@ export const listMyQuotes = query({
       .collect();
   },
 });
+
+// Backfill mutation to add lineItems to existing quotes
+export const backfillQuotesWithLineItems = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allQuotes = await ctx.db.query("quotes").collect();
+    let updated = 0;
+
+    for (const quote of allQuotes) {
+      const origin = quote.origin || "Origin";
+      const destination = quote.destination || "Destination";
+
+      // Check if quotes array needs updating
+      const existingQuotes = quote.quotes || [];
+      let needsUpdate = false;
+
+      const updatedQuotes = existingQuotes.map((q: any) => {
+        if (q.price && !q.price.lineItems) {
+          needsUpdate = true;
+          return {
+            ...q,
+            price: {
+              ...q.price,
+              lineItems: generateMockLineItems(origin, destination)
+            }
+          };
+        }
+        return q;
+      });
+
+      if (needsUpdate) {
+        await ctx.db.patch(quote._id, { quotes: updatedQuotes });
+        updated++;
+      }
+    }
+
+    return { total: allQuotes.length, updated };
+  },
+});
+
 export const createPublicQuote = mutation({
   args: {
     request: v.object({
@@ -421,7 +515,8 @@ export const createPublicQuote = mutation({
       price: {
         amount: basePrice,
         currency: "USD",
-        breakdown: { baseRate: basePrice, fuelSurcharge: 0, securityFee: 0, documentation: 0 }
+        breakdown: { baseRate: basePrice, fuelSurcharge: 0, securityFee: 0, documentation: 0 },
+        lineItems: generateMockLineItems(request.origin, request.destination)
       },
       validUntil: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
     }];

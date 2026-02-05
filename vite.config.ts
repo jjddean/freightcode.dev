@@ -19,7 +19,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    strictPort: true,
+    strictPort: false,
     host: true, // Listen on all network interfaces
   },
 })

@@ -11,7 +11,7 @@ import MobileDashboard from '@/components/mobile/MobileDashboard';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from 'sonner';
-import { Play } from 'lucide-react';
+import { Play, Wrench } from 'lucide-react';
 import { useOrganization, useUser } from "@clerk/clerk-react";
 
 const DashboardPage = () => {
@@ -26,9 +26,9 @@ const DashboardPage = () => {
 
   // Dynamic metrics calculation
   const liveMetrics = {
-    activeShipments: liveShipments?.filter((s: any) => s.status !== 'Delivered').length ?? 12,
-    pendingDocuments: liveDocuments?.filter((d: any) => d.status === 'pending' || d.status === 'draft').length ?? 5,
-    outstandingInvoices: 3, // Keep hardcoded until invoices API is ready
+    activeShipments: liveShipments?.filter((s: any) => s.status !== 'Delivered').length ?? 0,
+    pendingDocuments: liveDocuments?.filter((d: any) => d.status === 'pending' || d.status === 'draft').length ?? 0,
+    outstandingInvoices: liveDocuments?.filter((d: any) => d.type === 'commercial_invoice' && d.status !== 'paid').length ?? 0,
     monthlyRevenue: 45000 // Keep hardcoded until financial API is ready
   };
 
@@ -234,7 +234,10 @@ const DashboardPage = () => {
                     <span className="text-left">View Invoices</span>
                   </Link>
                 </Button>
-                <SimulateTrafficButton />
+                <div className="flex flex-col gap-2">
+                  <SimulateTrafficButton />
+                  <RepairDataButton />
+                </div>
               </div>
             </div>
 
@@ -333,6 +336,35 @@ function SimulateTrafficButton() {
       <span className="text-left">{running ? "Simulating..." : "Simulate Traffic"}</span>
     </Button>
   )
+}
+function RepairDataButton() {
+  const repair = useMutation(api.bookings.fixMissingDocuments);
+  const [running, setRunning] = useState(false);
+
+  const handleRun = async () => {
+    setRunning(true);
+    try {
+      const result = await repair();
+      toast.success(`Repair complete! Generated ${result.fixedCount} documents.`);
+    } catch (e: any) {
+      console.error("Repair failed:", e);
+      toast.error(`Repair failed: ${e.message}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleRun}
+      variant="outline"
+      className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50 h-auto whitespace-normal py-2"
+      disabled={running}
+    >
+      <Wrench className={`mr-2 h-4 w-4 shrink-0 ${running ? 'animate-spin' : ''}`} />
+      <span className="text-left">{running ? "Repairing..." : "Repair Missing Documents"}</span>
+    </Button>
+  );
 }
 
 export default DashboardPage;

@@ -1,0 +1,15 @@
+{
+  "shippo": {
+    "success": false,
+    "status": 401,
+    "error": {
+      "detail": "Token does not exist"
+    }
+  },
+  "searatesGraphQL": {
+    "success": false,
+    "tokenResponse": {
+      "message": "Client not found"
+    }
+  }
+}

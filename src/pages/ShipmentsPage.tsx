@@ -45,6 +45,7 @@ const ShipmentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
 
   const handleFilterChange = (key: string, value: any) => {
     const newFilters = { ...activeFilters };
@@ -434,6 +435,7 @@ const ShipmentsPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Shipments Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-4">
+
         <MediaCardHeader
           title="Active Shipments"
           subtitle="Shipments"
@@ -441,6 +443,15 @@ const ShipmentsPage = () => {
           backgroundImage="/shipments-bg.jpg"
           overlayOpacity={0.5}
           className="mb-8"
+          isExpandable={true}
+          isExpanded={isHeaderExpanded}
+          onToggle={() => setIsHeaderExpanded(!isHeaderExpanded)}
+          backgroundComponent={
+            <ShipmentMap
+              className="w-full h-full border-none shadow-none rounded-none"
+              minimal={!isHeaderExpanded}
+            />
+          }
         />
 
         {/* Action Toolbar */}
@@ -557,44 +568,6 @@ const ShipmentsPage = () => {
             handleSearch(val, activeFilters);
           }}
 
-          // Toolbar Actions (Filter Button)
-          toolbarActions={
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`relative ${showFilters ? 'bg-gray-100' : ''}`}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.586l-4-2v-2.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Filters
-                {Object.keys(activeFilters).length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white shadow-sm">
-                    {Object.keys(activeFilters).length}
-                  </span>
-                )}
-              </Button>
-
-              {(searchTerm || Object.keys(activeFilters).length > 0) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setActiveFilters({});
-                    setShowFilters(false);
-                    handleClearSearch();
-                  }}
-                  className="text-gray-500 hover:text-gray-900"
-                >
-                  Clear check
-                </Button>
-              )}
-            </div>
-          }
-
           // Filter Panel Content
           filterPanel={showFilters && (
             <div className="border-t border-gray-200 pt-4 mt-2">
@@ -704,16 +677,7 @@ const ShipmentsPage = () => {
               </div>
             </div>
 
-            {/* Global Map View */}
-            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-200 h-[500px]">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-900">Global Fleet Map</h3>
-                <span className="text-xs text-gray-500">Real-time GPS Visualization</span>
-              </div>
-              <div className="h-[440px] w-full rounded-b-lg overflow-hidden relative z-0">
-                <ShipmentMap />
-              </div>
-            </div>
+
           </div>
         )}
 
@@ -1010,4 +974,3 @@ function RiskMeter({ shipmentId }: { shipmentId: string }) {
 
 
 export default ShipmentsPage;
-

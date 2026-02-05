@@ -127,6 +127,7 @@ export const onBookingConfirmed = internalMutation({
       currency: "USD",
       status: "pending",
       dueDate: dueDate.toISOString(),
+      route: `${booking.pickupDetails?.address || 'Origin'} -> ${booking.deliveryDetails?.address || 'Destination'}`,
       items: [
         {
           description: `Shipping Service - ${booking.pickupDetails?.address || 'Origin'} to ${booking.deliveryDetails?.address || 'Destination'}`,

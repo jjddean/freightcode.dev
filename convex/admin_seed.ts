@@ -1,3 +1,4 @@
+import { internalMutation } from "./_generated/server";
 
 export const seedContracts = internalMutation({
     args: {},

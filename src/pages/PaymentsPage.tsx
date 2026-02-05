@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 import SubscriptionCards from '@/components/subscription/SubscriptionCards';
+import PriceBreakdownTable from '@/components/shipping/PriceBreakdownTable';
 
 const PaymentsPage = () => {
   const { user } = useUser();
@@ -30,6 +31,7 @@ const PaymentsPage = () => {
 
   // Live payment data from Convex
   const livePayments = useQuery(api.paymentAttempts.listMyPayments) || [];
+  const convexInvoices = useQuery(api.invoices.listMyInvoices) || [];
 
   // Checkout Action
   // const createCheckout = useAction(api.billing.createCheckoutSession);
@@ -126,7 +128,7 @@ const PaymentsPage = () => {
           // Convert Quote -> Booking
           const result = await createBooking({
             quoteId: fetchedQuote.quoteId,
-            carrierQuoteId: rate.id || `rate-auto-${Date.now()}`,
+            carrierQuoteId: rate.carrierId || rate.id || `rate-auto-${Date.now()}`,
             customerDetails: {
               name: contact.name,
               email: contact.email,
@@ -215,26 +217,60 @@ const PaymentsPage = () => {
     { id: 2, type: 'Bank Account', last4: '9876', name: 'Business Checking', default: false, bank: 'HSBC' },
   ];
 
-  // Merge live payments with hardcoded fallback
+  // Merge live payments and convex invoices with hardcoded fallback
   const invoices = useMemo(() => {
+    let combined = [];
+
+    // 1. Process Convex Invoices (shipment-specific)
+    if (convexInvoices.length > 0) {
+      combined.push(...convexInvoices.map((inv: any) => ({
+        id: inv.invoiceNumber || inv._id,
+        date: new Date(inv.createdAt).toLocaleDateString(),
+        amount: inv.amount,
+        currency: inv.currency,
+        status: inv.status === 'paid' ? 'Paid' : inv.status === 'pending' ? 'Pending' : inv.status || 'Unknown',
+        shipment: inv.bookingId || '-',
+        dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '-',
+        description: `Shipment Invoice - ${inv.invoiceNumber}`,
+        route: inv.route || 'N/A',
+        lineItems: inv.lineItems || [], // If we store detailed line items here too
+        metadata: inv
+      })));
+    }
+
+    // 2. Process Live Payments (subscriptions, etc)
     if (livePayments.length > 0) {
-      // Format live payments to match invoice structure
-      return livePayments.map((p: any) => ({
+      combined.push(...livePayments.map((p: any) => ({
         id: p.payment_id || p.invoice_id || `PAY-${p._id}`,
         date: p.created_at ? new Date(p.created_at).toLocaleDateString() : '-',
         amount: p.totals?.grand_total?.amount || 0,
+        currency: p.totals?.grand_total?.currency || 'GBP',
         status: p.status === 'completed' ? 'Paid' : p.status === 'pending' ? 'Pending' : p.status || 'Unknown',
         shipment: p.invoice_id || '-',
         dueDate: '-',
-        description: `Payment ${p.payment_id || ''}`
+        description: p.subscription_items?.[0]?.plan?.name || `Payment ${p.payment_id || ''}`,
+        route: p.metadata?.route || 'N/A',
+        lineItems: p.metadata?.lineItems || [],
+        metadata: p.metadata
+      })));
+    }
+
+    // 3. Fallback to hardcoded if nothing found
+    if (combined.length === 0) {
+      return HARDCODED_INVOICES.map(inv => ({
+        ...inv,
+        route: 'N/A',
+        lineItems: []
       }));
     }
-    return [];
-  }, [livePayments]);
+
+    return combined;
+  }, [livePayments, convexInvoices]);
 
   const invoiceColumns = [
     { key: 'id' as keyof typeof invoices[0], header: 'Invoice ID', sortable: true },
     { key: 'date' as keyof typeof invoices[0], header: 'Date', sortable: true },
+    { key: 'route' as keyof typeof invoices[0], header: 'Route', sortable: false },
     { key: 'description' as keyof typeof invoices[0], header: 'Description', sortable: false },
     {
       key: 'amount' as keyof typeof invoices[0],
@@ -275,7 +311,7 @@ const PaymentsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-4 sm:px-6 lg:px-8 py-4">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 pb-24">
         {/* Payments Header */}
         <MediaCardHeader
           title="Payment Management"
@@ -338,12 +374,16 @@ const PaymentsPage = () => {
               }}>Export Invoices</Button>
             </div>
 
-            <DataTable
-              data={invoices}
-              columns={invoiceColumns}
-              searchPlaceholder="Search invoices by ID, shipment, or description..."
-              rowsPerPage={10}
-            />
+            {/* Data Table wrapped in container to fix horizontal scroll and match UI */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden min-h-[400px]">
+              <DataTable
+                data={invoices}
+                columns={invoiceColumns}
+                searchPlaceholder="Search invoices by ID, shipment, or description..."
+                rowsPerPage={10}
+                className="border-0 shadow-none"
+              />
+            </div>
           </div>
         )}
 
@@ -408,6 +448,12 @@ const PaymentsPage = () => {
                 <p className="text-gray-500 text-sm">Description</p>
                 <p className="font-medium">{selectedInvoice.description}</p>
               </div>
+              {selectedInvoice.metadata?.route && (
+                <div>
+                  <p className="text-gray-500 text-sm">Route</p>
+                  <p className="font-medium">{selectedInvoice.metadata.route}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500">Issue Date</p>
@@ -419,9 +465,10 @@ const PaymentsPage = () => {
                 </div>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Shipment Reference</p>
                 <p className="font-mono">{selectedInvoice.shipment}</p>
               </div>
+
+
               {selectedInvoice.status === 'Pending' && (
                 <Button className="w-full" onClick={() => {
                   handlePayInvoice(selectedInvoice.id);

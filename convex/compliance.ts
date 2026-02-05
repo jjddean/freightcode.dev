@@ -18,7 +18,7 @@ export const getKycStatus = query({
 // Start or resume KYC process
 export const startKyc = mutation({
     args: {
-        orgId: v.optional(v.string()) // Implicitly passed from frontend
+        orgId: v.optional(v.union(v.string(), v.null())) // Implicitly passed from frontend
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();

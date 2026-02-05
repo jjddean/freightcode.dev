@@ -217,7 +217,7 @@ export const listShipments = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const orgId = argsOrgId ?? null;
+    const orgId = argsOrgId;
 
     let list = [] as any[];
     if (onlyMine) {
@@ -234,12 +234,14 @@ export const listShipments = query({
       list = await ctx.db
         .query("shipments")
         .withIndex("byUserId", (q) => q.eq("userId", user._id))
+        .order("desc")
         .collect();
     } else if (orgId) {
       // Filter by organization
       list = await ctx.db
         .query("shipments")
         .withIndex("byOrgId", (q) => q.eq("orgId", orgId))
+        .order("desc")
         .collect();
     } else {
       // Personal account - filter by userId AND ensure orgId is missing/null
@@ -251,7 +253,8 @@ export const listShipments = query({
       list = await ctx.db
         .query("shipments")
         .withIndex("byUserId", (q) => q.eq("userId", user._id))
-        // .filter((q) => q.eq(q.field("orgId"), undefined))
+        .filter((q) => q.or(q.eq(q.field("orgId"), null), q.eq(q.field("orgId"), undefined)))
+        .order("desc")
         .collect();
     }
 

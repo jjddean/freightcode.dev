@@ -42,7 +42,7 @@ export const logEvent = internalMutation({
         entityId: v.optional(v.string()),
         userId: v.optional(v.string()),
         userEmail: v.optional(v.string()),
-        orgId: v.optional(v.string()),
+        orgId: v.optional(v.union(v.string(), v.null())),
         details: v.optional(v.any()),
         ipAddress: v.optional(v.string()),
         userAgent: v.optional(v.string()),
